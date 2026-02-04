@@ -9,6 +9,16 @@ build/
 dist/
 *.log
 
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+.venv/
+
 # Environment
 .env
 .env.local
