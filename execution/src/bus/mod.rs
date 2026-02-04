@@ -2,7 +2,7 @@ use tokio::sync::broadcast;
 
 #[derive(Clone)]
 pub struct SignalBus<T: Clone> {
-    tx: broadcast::Sender<T>,
+    pub(crate) tx: broadcast::Sender<T>,
 }
 
 impl<T: Clone> SignalBus<T> {

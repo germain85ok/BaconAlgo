@@ -3,64 +3,144 @@ mod api;
 mod scanner;
 mod market;
 mod news;
+mod config;
+mod families;
 
-use axum::{routing::get, Router};
-use std::{net::SocketAddr, time::Duration};
+use axum::{
+    routing::{get, post},
+    Router,
+    http::{header, Method},
+};
+use std::net::SocketAddr;
+use tower::ServiceBuilder;
+use tower_http::cors::CorsLayer;
+use tower_http::trace::TraceLayer;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-use api::{routes::sse_signals, LiveSignal};
+use api::{
+    routes::sse_signals, 
+    signals::{get_signals, stream_signals},
+    market::{get_fear_greed_index, get_vix, get_movers},
+    news::get_news,
+    LiveSignal,
+};
 use bus::SignalBus;
-use market::{MarketAdapter, MarketEvent, binance::BinanceAdapter};
-use scanner::{context::Context, engine::ScannerEngine, timeframe::Timeframe};
-
-fn now_ms() -> i64 {
-    use std::time::{SystemTime, UNIX_EPOCH};
-    SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64
-}
+use config::CONFIG;
+use scanner::Scanner;
 
 #[tokio::main]
 async fn main() {
+    // Initialize tracing
+    tracing_subscriber::registry()
+        .with(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| "execution=debug,tower_http=debug".into()),
+        )
+        .with(tracing_subscriber::fmt::layer())
+        .init();
+
+    tracing::info!("🚀 BaconAlgo Execution Engine starting...");
+
+    // Validate configuration
+    if let Err(e) = CONFIG.validate() {
+        tracing::error!("Configuration validation failed: {}", e);
+        tracing::warn!("Continuing with partial configuration for development...");
+    }
+
+    // Create signal bus with capacity for 256 messages
     let bus = SignalBus::<LiveSignal>::new(256);
 
-    let bus_clone = bus.clone();
+    // Start scanner in background
+    let scanner_bus = bus.clone();
     tokio::spawn(async move {
-        let mut adapter = BinanceAdapter::new("btcusdt");
-        let mut engine = ScannerEngine::new();
-        let mut last_ready: Option<bool> = None;
-
-        loop {
-            if let Some(MarketEvent::Candle(c)) = adapter.next_event().await {
-                engine.update(Context {
-                    tf: Timeframe::M15,
-                    near_npoc: c.close >= c.open,
-                    in_golden_pocket: true,
-                    structure_ok: true,
-                });
-
-                let ready = engine.ready();
-                if last_ready.map(|p| p != ready).unwrap_or(true) {
-                    bus_clone.publish(LiveSignal {
-                        symbol: c.symbol,
-                        horizon: "M15".into(),
-                        ready,
-                        tags: serde_json::json!({ "close": c.close }),
-                        reason: if ready { "READY".into() } else { "NOT READY".into() },
-                        ts_unix_ms: now_ms(),
-                    });
-                    last_ready = Some(ready);
-                }
-            }
-            tokio::time::sleep(Duration::from_millis(200)).await;
-        }
+        let scanner = Scanner::new(scanner_bus.tx.clone());
+        // TODO: Add indicators to scanner
+        // scanner.add_indicator(Arc::new(SomeIndicator::new()));
+        
+        scanner.run().await;
     });
 
+    // Setup CORS
+    let cors = CorsLayer::new()
+        .allow_origin(
+            CONFIG.cors_origins
+                .iter()
+                .map(|origin| origin.parse().unwrap())
+                .collect::<Vec<_>>()
+        )
+        .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
+        .allow_headers([header::CONTENT_TYPE, header::AUTHORIZATION]);
+
+    // Build router
     let app = Router::new()
+        // Health check
+        .route("/health", get(health_check))
+        
+        // Signal endpoints
+        .route("/api/signals", get(get_signals))
+        .route("/api/signals/stream", get(stream_signals))
+        
+        // Legacy SSE endpoint (keep for backwards compatibility)
         .route("/signals/live", get(sse_signals))
-        .with_state(bus);
+        
+        // Market data endpoints
+        .route("/api/market/fear-greed", get(get_fear_greed_index))
+        .route("/api/market/vix", get(get_vix))
+        .route("/api/market/movers", get(get_movers))
+        
+        // News endpoint
+        .route("/api/news", get(get_news))
+        
+        // Manual scan trigger
+        .route("/api/scan", post(trigger_scan))
+        
+        .with_state(bus)
+        .layer(
+            ServiceBuilder::new()
+                .layer(TraceLayer::new_for_http())
+                .layer(cors)
+        );
 
-    let addr = SocketAddr::from(([0,0,0,0], 3000));
-    println!("🔥 LIVE @ http://{addr}/signals/live");
+    // Start server
+    let addr = SocketAddr::from(([0, 0, 0, 0], CONFIG.server_port));
+    tracing::info!("🔥 Server listening on http://{}", addr);
+    tracing::info!("📡 SSE endpoint: http://{}/api/signals/stream", addr);
+    tracing::info!("💓 Health check: http://{}/health", addr);
 
-    axum::serve(tokio::net::TcpListener::bind(addr).await.unwrap(), app)
+    let listener = tokio::net::TcpListener::bind(addr)
         .await
-        .unwrap();
+        .expect("Failed to bind to address");
+
+    axum::serve(listener, app)
+        .await
+        .expect("Server error");
 }
+
+/// Health check endpoint
+async fn health_check() -> axum::Json<serde_json::Value> {
+    axum::Json(serde_json::json!({
+        "status": "ok",
+        "service": "BaconAlgo Execution Engine",
+        "version": env!("CARGO_PKG_VERSION"),
+        "timestamp": chrono::Utc::now().to_rfc3339(),
+        "config": {
+            "has_market_provider": CONFIG.has_market_provider(),
+            "has_crypto_apis": CONFIG.has_crypto_apis(),
+            "has_broker_apis": CONFIG.has_broker_apis(),
+            "has_database": CONFIG.has_database(),
+        }
+    }))
+}
+
+/// Manual scan trigger endpoint
+async fn trigger_scan() -> axum::Json<serde_json::Value> {
+    tracing::info!("Manual scan triggered via API");
+    
+    // TODO: Implement manual scan trigger
+    axum::Json(serde_json::json!({
+        "status": "triggered",
+        "message": "Scan initiated",
+        "timestamp": chrono::Utc::now().to_rfc3339(),
+    }))
+}
+
