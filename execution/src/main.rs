@@ -3,6 +3,8 @@ mod api;
 mod scanner;
 mod market;
 mod news;
+mod smc;
+mod signal;
 
 use axum::{routing::get, Router};
 use std::{net::SocketAddr, time::Duration};
