@@ -1,7 +1,14 @@
-<script>
+<script lang="ts">
   import { onMount } from 'svelte';
 
-  let signals = [];
+  interface SignalData {
+    symbol: string;
+    ready: boolean;
+    score: number;
+    type?: string;
+  }
+
+  let signals: SignalData[] = [];
 
   onMount(() => {
     const es = new EventSource('/signals/live');

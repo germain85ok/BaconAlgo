@@ -18,4 +18,9 @@ impl<T: Clone> SignalBus<T> {
     pub fn subscribe(&self) -> broadcast::Receiver<T> {
         self.tx.subscribe()
     }
+    
+    /// Get a clone of the sender for creating new publishers
+    pub fn sender(&self) -> broadcast::Sender<T> {
+        self.tx.clone()
+    }
 }

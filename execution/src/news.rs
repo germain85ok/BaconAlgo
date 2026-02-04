@@ -17,7 +17,7 @@ fn now_ms() -> i64 {
         .as_millis() as i64
 }
 
-async fn fetch_feed(url: &str) -> anyhow::Result<Vec<NewsItem>> {
+async fn fetch_feed(url: &str) -> Result<Vec<NewsItem>, Box<dyn std::error::Error>> {
     let bytes = reqwest::Client::new()
         .get(url)
         .header("User-Agent", "BaconAlgo/1.0")
