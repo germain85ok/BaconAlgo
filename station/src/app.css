@@ -1,0 +1,163 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    @apply bg-dark text-white font-sans;
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display;
+  }
+}
+
+@layer components {
+  /* Glassmorphism */
+  .glass-card {
+    background: rgba(12, 12, 20, 0.75);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 107, 53, 0.2);
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  }
+
+  .glass-card-hover {
+    @apply glass-card transition-all duration-300;
+  }
+
+  .glass-card-hover:hover {
+    border-color: rgba(255, 107, 53, 0.5);
+    box-shadow: 0 0 40px rgba(255, 107, 53, 0.3);
+    transform: translateY(-2px);
+  }
+
+  /* Neon glow effects */
+  .glow-primary {
+    box-shadow: 0 0 20px rgba(255, 107, 53, 0.5);
+  }
+
+  .glow-success {
+    box-shadow: 0 0 20px rgba(0, 217, 255, 0.5);
+  }
+
+  .glow-negative {
+    box-shadow: 0 0 20px rgba(255, 77, 106, 0.5);
+  }
+
+  /* Animated grid background */
+  .grid-background {
+    background-image: 
+      linear-gradient(rgba(255, 107, 53, 0.1) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 107, 53, 0.1) 1px, transparent 1px);
+    background-size: 50px 50px;
+    animation: grid-move 20s linear infinite;
+  }
+
+  @keyframes grid-move {
+    0% { background-position: 0 0; }
+    100% { background-position: 50px 50px; }
+  }
+
+  /* Shimmer effect */
+  .shimmer {
+    background: linear-gradient(
+      90deg,
+      rgba(255, 107, 53, 0.1) 0%,
+      rgba(255, 107, 53, 0.3) 50%,
+      rgba(255, 107, 53, 0.1) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2s linear infinite;
+  }
+
+  /* Buttons */
+  .btn {
+    @apply px-6 py-3 rounded-lg font-semibold transition-all duration-300;
+  }
+
+  .btn-primary {
+    @apply btn bg-primary text-white;
+  }
+
+  .btn-primary:hover {
+    @apply bg-accent glow-primary transform scale-105;
+  }
+
+  .btn-secondary {
+    @apply btn glass-card text-white;
+  }
+
+  .btn-secondary:hover {
+    @apply glass-card-hover;
+  }
+
+  /* Badge */
+  .badge {
+    @apply px-3 py-1 rounded-full text-xs font-semibold;
+  }
+
+  .badge-bullish {
+    @apply badge bg-success/20 text-success border border-success/50;
+  }
+
+  .badge-bearish {
+    @apply badge bg-negative/20 text-negative border border-negative/50;
+  }
+
+  .badge-neutral {
+    @apply badge bg-gray-500/20 text-gray-300 border border-gray-500/50;
+  }
+
+  /* Score bar */
+  .score-bar {
+    @apply relative h-2 rounded-full overflow-hidden;
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .score-bar-fill {
+    @apply absolute top-0 left-0 h-full transition-all duration-500;
+    background: linear-gradient(90deg, #ff4d6a 0%, #ffb347 50%, #00d9ff 100%);
+  }
+
+  /* Input */
+  .input {
+    @apply glass-card px-4 py-2 rounded-lg text-white placeholder-gray-400;
+    @apply focus:outline-none focus:ring-2 focus:ring-primary;
+  }
+
+  /* Number display */
+  .number {
+    @apply font-mono font-semibold;
+  }
+
+  .number-bullish {
+    @apply number text-success;
+  }
+
+  .number-bearish {
+    @apply number text-negative;
+  }
+}
+
+@layer utilities {
+  .text-gradient {
+    background: linear-gradient(90deg, #ff6b35 0%, #ffb347 50%, #ffd700 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .border-gradient {
+    border-image: linear-gradient(90deg, #ff6b35, #ffb347, #ffd700) 1;
+  }
+}
