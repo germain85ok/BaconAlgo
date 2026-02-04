@@ -40,13 +40,14 @@ export function addDonation(donation: Donation) {
 		return updated.slice(0, 100);
 	});
 
-	// Update today's total
+	// Update today's total and goal progress
 	if (isToday(donation.created_at)) {
-		todaysTotal.update((total) => total + donation.amount);
-		goalProgress.update((progress) => {
-			const newTotal = Math.min(((todaysTotal as any).value + donation.amount) / DAILY_DONATION_GOAL, 1);
+		let newTotal = 0;
+		todaysTotal.update((total) => {
+			newTotal = total + donation.amount;
 			return newTotal;
 		});
+		goalProgress.set(Math.min(newTotal / DAILY_DONATION_GOAL, 1));
 	}
 
 	// Show alert if donation is above minimum

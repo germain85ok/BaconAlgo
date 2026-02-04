@@ -14,10 +14,14 @@
 	import { settings } from '$lib/stores/settings';
 
 	onMount(async () => {
-		// Initialize all stores
-		await initSignalsStore();
-		await initDonationsStore();
-		initMarketStore();
+		try {
+			// Initialize all stores
+			await initSignalsStore();
+			await initDonationsStore();
+			initMarketStore();
+		} catch (error) {
+			console.error('Failed to initialize stores:', error);
+		}
 	});
 
 	onDestroy(() => {
