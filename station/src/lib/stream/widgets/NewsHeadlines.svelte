@@ -12,37 +12,37 @@
 	let headlines: NewsItem[] = [
 		{
 			id: '1',
-			headline: 'Fed signals potential rate cut as inflation cools',
+			headline: 'Federal Reserve signals potential rate changes amid economic shifts',
 			source: 'Bloomberg',
 			timestamp: new Date(Date.now() - 5 * 60000)
 		},
 		{
 			id: '2',
-			headline: 'Tech stocks rally on strong earnings reports',
+			headline: 'Technology sector shows strong quarterly earnings performance',
 			source: 'CNBC',
 			timestamp: new Date(Date.now() - 15 * 60000)
 		},
 		{
 			id: '3',
-			headline: 'Bitcoin surges past $44K amid institutional buying',
+			headline: 'Cryptocurrency markets experience increased institutional adoption',
 			source: 'CoinDesk',
 			timestamp: new Date(Date.now() - 25 * 60000)
 		},
 		{
 			id: '4',
-			headline: 'Energy sector rebounds on production cuts',
+			headline: 'Energy sector responds to global production adjustments',
 			source: 'Reuters',
 			timestamp: new Date(Date.now() - 35 * 60000)
 		},
 		{
 			id: '5',
-			headline: 'Housing market shows signs of stabilization',
+			headline: 'Housing market indicators point to evolving trends',
 			source: 'WSJ',
 			timestamp: new Date(Date.now() - 45 * 60000)
 		},
 		{
 			id: '6',
-			headline: 'AI stocks continue upward momentum',
+			headline: 'Artificial intelligence stocks maintain investor interest',
 			source: 'MarketWatch',
 			timestamp: new Date(Date.now() - 55 * 60000)
 		}

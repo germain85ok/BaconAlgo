@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { createEventDispatcher } from 'svelte';
+	import { BITCOIN_ADDRESS, ETHEREUM_ADDRESS } from '$lib/config/env';
 
 	const dispatch = createEventDispatcher();
 
@@ -24,13 +25,13 @@
 		{
 			name: 'Bitcoin',
 			icon: '₿',
-			address: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
+			address: BITCOIN_ADDRESS || 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
 			color: '#f7931a'
 		},
 		{
 			name: 'Ethereum',
 			icon: '⟠',
-			address: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
+			address: ETHEREUM_ADDRESS || '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb1',
 			color: '#627eea'
 		}
 	];
