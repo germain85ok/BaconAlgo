@@ -53,7 +53,7 @@ async fn main() {
     // Start scanner in background
     let scanner_bus = bus.clone();
     tokio::spawn(async move {
-        let scanner = Scanner::new(scanner_bus.tx.clone());
+        let scanner = Scanner::new(scanner_bus.sender());
         // TODO: Add indicators to scanner
         // scanner.add_indicator(Arc::new(SomeIndicator::new()));
         
