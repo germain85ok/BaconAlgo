@@ -46,7 +46,7 @@
 		},
 		{
 			name: 'Indicator',
-			price: { monthly: 20, yearly: 192 },
+			price: { monthly: 20, yearly: 16 * 12 },
 			popular: false,
 			features: [
 				'TradingView indicator',
@@ -60,7 +60,7 @@
 		},
 		{
 			name: 'Scanner',
-			price: { monthly: 30, yearly: 288 },
+			price: { monthly: 30, yearly: 24 * 12 },
 			popular: true,
 			features: [
 				'Real-time scanner',
@@ -75,7 +75,7 @@
 		},
 		{
 			name: 'Station',
-			price: { monthly: 50, yearly: 480 },
+			price: { monthly: 50, yearly: 40 * 12 },
 			popular: false,
 			features: [
 				'EVERYTHING included',
