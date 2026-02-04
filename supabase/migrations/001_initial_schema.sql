@@ -428,9 +428,9 @@ INSERT INTO stream_config (key, value) VALUES
 ON CONFLICT (key) DO NOTHING;
 
 -- Insert sample sponsors (optional - comment out if not needed)
-INSERT INTO sponsors (name, logo_url, website_url, active, display_order) VALUES
-('BaconAlgo', 'https://placeholder.com/logo1.png', 'https://baconalgo.com', true, 1)
-ON CONFLICT DO NOTHING;
+-- Note: Uncomment this if you want sample data
+-- INSERT INTO sponsors (name, logo_url, website_url, active, display_order) VALUES
+-- ('BaconAlgo', 'https://placeholder.com/logo1.png', 'https://baconalgo.com', true, 1);
 
 -- =============================================================================
 -- COMMENTS

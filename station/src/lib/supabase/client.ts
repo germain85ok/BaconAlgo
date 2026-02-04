@@ -192,7 +192,7 @@ export async function getDonationGoalProgress(goal: number) {
 	const client = getSupabaseClient();
 	const { data, error } = await client.rpc('get_donation_goal_progress', { goal_amount: goal });
 	if (error) throw error;
-	return data as DonationGoalProgress;
+	return (data as DonationGoalProgress[])[0];
 }
 
 // =============================================================================
