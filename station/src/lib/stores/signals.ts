@@ -70,7 +70,7 @@ export function connectSignalStream(url: string = '/signals/live') {
       
       signals.update(map => {
         const newMap = new Map(map);
-        newMap.set(signal.symbol, signal);
+        newMap.set(signal.id, signal); // Use signal.id as key to preserve all signals
         return newMap;
       });
     } catch (err) {

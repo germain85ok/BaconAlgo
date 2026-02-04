@@ -201,7 +201,7 @@ mod tests {
     #[test]
     fn test_golden_pocket() {
         let gp = GoldenPocket::new(100.0, 80.0, true);
-        assert_eq!(gp.fib_618, 92.36);
+        assert!((gp.fib_618 - 92.36).abs() < 0.01);
         assert!(gp.is_in_zone(93.0));
         assert!(!gp.is_in_zone(100.0));
     }

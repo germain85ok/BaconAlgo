@@ -19,6 +19,12 @@ fn now_ms() -> i64 {
     SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64
 }
 
+fn should_publish_signal(current_score: u8, previous_score: Option<u8>) -> bool {
+    previous_score
+        .map(|prev| (current_score as i16 - prev as i16).abs() >= 10)
+        .unwrap_or(true)
+}
+
 #[tokio::main]
 async fn main() {
     let bus = SignalBus::<LiveSignal>::new(256);
@@ -71,12 +77,10 @@ async fn main() {
                     signal.whale_bars = whale_bars;
 
                     // Only publish if score changed significantly or is high
-                    if signal.score >= 50 {
-                        if last_signal_score.map(|prev| (signal.score as i16 - prev as i16).abs() >= 10).unwrap_or(true) {
-                            let score = signal.score;
-                            bus_clone.publish(signal.into());
-                            last_signal_score = Some(score);
-                        }
+                    if signal.score >= 50 && should_publish_signal(signal.score, last_signal_score) {
+                        let score = signal.score;
+                        bus_clone.publish(signal.into());
+                        last_signal_score = Some(score);
                     }
                 }
             }
