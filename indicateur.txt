@@ -1,0 +1,1049 @@
+//@version=6
+indicator("BaconAlgo 🥓 ", shorttitle="BaconAlgo 🥓 ", overlay=true, max_lines_count=500, max_labels_count=500, max_boxes_count=500)
+
+// ═══════════════════════════════════════════════════════════════════
+// 🎯 DIRECTION MODE
+// ═══════════════════════════════════════════════════════════════════
+group_direction = "🎯 DIRECTION MODE"
+trade_direction = input.string("Both", "📍 Trade Direction", options=["Both", "Long Only", "Short Only"], group=group_direction)
+
+// ═══════════════════════════════════════════════════════════════════
+// 🔄 SWING MODE
+// ═══════════════════════════════════════════════════════════════════
+group_swing = "🔄 SWING MODE"
+one_signal_per_swing = input.bool(true, "🎯 Un signal par swing", group=group_swing)
+swing_detection_length = input.int(5, "Swing Detection Length", minval=2, maxval=50, group=group_swing)
+
+// ═══════════════════════════════════════════════════════════════════
+// 💰 MONEY MANAGEMENT
+// ═══════════════════════════════════════════════════════════════════
+group_mm = "💰 MONEY MANAGEMENT"
+account_size = input.float(10000.0, "💵 Account Size", minval=100, step=100, group=group_mm)
+risk_percent = input.float(1.0, "⚠️ Risk % per trade", minval=0.1, maxval=100, step=0.1, group=group_mm)
+use_fixed_qty = input.bool(false, "🔢 Use Fixed Qty", group=group_mm)
+fixed_qty = input.float(100.0, "Fixed Quantity", minval=1, step=1, group=group_mm)
+
+// ═══════════════════════════════════════════════════════════════════
+// ⚖️ POIDS CONFLUENCES
+// ═══════════════════════════════════════════════════════════════════
+group_weights = "⚖️ POIDS CONFLUENCES"
+use_dynamic_weights = input.bool(true, "🔥 Poids Auto par TF", group=group_weights)
+
+w_vwap_trend     = input.float(15.0, "VWAP+Trend",    minval=0, maxval=100, step=1, group=group_weights)
+w_dmi_momentum   = input.float(15.0, "DMI+Momentum",  minval=0, maxval=100, step=1, group=group_weights)
+w_stoch_utbot    = input.float(12.0, "Stoch+UTBOT",   minval=0, maxval=100, step=1, group=group_weights)
+w_macd           = input.float(10.0, "MACD",          minval=0, maxval=100, step=1, group=group_weights)
+w_stoch_confirm  = input.float(10.0, "Stoch Confirm", minval=0, maxval=100, step=1, group=group_weights)
+w_rsi            = input.float(8.0,  "RSI",           minval=0, maxval=100, step=1, group=group_weights)
+w_bb             = input.float(6.0,  "Bollinger",     minval=0, maxval=100, step=1, group=group_weights)
+w_volume_spike   = input.float(8.0,  "Volume spike",  minval=0, maxval=100, step=1, group=group_weights)
+w_structure      = input.float(20.0, "BOS+Structure", minval=0, maxval=100, step=1, group=group_weights)
+w_ict            = input.float(15.0, "FVG+OB",        minval=0, maxval=100, step=1, group=group_weights)
+w_cci            = input.float(5.0,  "CCI",           minval=0, maxval=100, step=1, group=group_weights)
+
+// ═══════════════════════════════════════════════════════════════════
+// 💰 RISK/REWARD
+// ═══════════════════════════════════════════════════════════════════
+group_rr = "💰 RISK/REWARD"
+riskRR1 = input.float(1.0, "🎯 TP1 (RR)", step=0.1, minval=0.1, maxval=100.0, group=group_rr)
+riskRR2 = input.float(2.0, "🎯 TP2 (RR)", step=0.1, minval=0.1, maxval=100.0, group=group_rr)
+riskRR3 = input.float(3.0, "🎯 TP3 (RR)", step=0.1, minval=0.1, maxval=100.0, group=group_rr)
+riskRR4 = input.float(5.0, "🎯 TP4 (RR)", step=0.1, minval=0.1, maxval=100.0, group=group_rr)
+
+// ═══════════════════════════════════════════════════════════════════
+// 🛡️ STOP LOSS - DERNIER SWING PIVOT
+// ═══════════════════════════════════════════════════════════════════
+group_sl = "🛡️ STOP LOSS"
+sl_method = input.string("Swing Pivot", "Méthode SL", options=["Swing Pivot", "ATR", "Lowest/Highest"], group=group_sl)
+swing_lookback = input.int(34, "🔍 Swing lookback (Lowest/Highest)", minval=1, maxval=500, group=group_sl)
+pivot_lookback_left = input.int(5, "🔍 Pivot Left Bars", minval=1, maxval=50, group=group_sl)
+pivot_lookback_right = input.int(5, "🔍 Pivot Right Bars", minval=1, maxval=50, group=group_sl)
+atr_multiplier = input.float(2.0, "⚡ ATR Mult", minval=0.1, maxval=10.0, step=0.1, group=group_sl)
+atr_period = input.int(14, "📊 ATR Period", minval=1, maxval=500, group=group_sl)
+sl_buffer_cents = input.float(1, "🛡️ Buffer (cents)", minval=0.0, maxval=50.0, step=0.5, group=group_sl)
+move_sl_to_breakeven = input.bool(true, "SL → BE après TP1", group=group_sl)
+
+// ═══════════════════════════════════════════════════════════════════
+// 📈 STRUCTURE
+// ═══════════════════════════════════════════════════════════════════
+group_structure = "📈 STRUCTURE"
+pivot_length = input.int(20, "Pivot Length", group=group_structure, minval=1, maxval=200)
+show_structure_labels = input.bool(false, "Afficher HH/HL/LH/LL", group=group_structure)
+require_structure = input.bool(false, "Structure OBLIGATOIRE", group=group_structure)
+
+// ═══════════════════════════════════════════════════════════════════
+// 🎯 ICT SMART MONEY
+// ═══════════════════════════════════════════════════════════════════
+group_ict = "🎯 ICT SMART MONEY"
+show_fvg = input.bool(true, "Afficher FVG", group=group_ict)
+show_order_blocks = input.bool(true, "Afficher Order Blocks", group=group_ict)
+ob_lookback = input.int(10, "OB Lookback", minval=5, maxval=50, group=group_ict)
+fvg_mitigation = input.float(0.5, "FVG Mitigation %", minval=0.1, maxval=1.0, step=0.1, group=group_ict)
+
+// ═══════════════════════════════════════════════════════════════════
+// ⛩️ HEIKIN ASHI
+// ═══════════════════════════════════════════════════════════════════
+group_ha = "⛩️ HEIKIN ASHI"
+use_heikin_ashi = input.bool(true, "Utiliser HA", group=group_ha)
+
+// ═══════════════════════════════════════════════════════════════════
+// 🎛️ FILTRES / AFFICHAGE
+// ═══════════════════════════════════════════════════════════════════
+group_visual = "🎛️ FILTRES / AFFICHAGE"
+show_signals = input.bool(true, "🥓 Labels BUY/SELL", group=group_visual)
+min_confluence_score = input.int(80, "Score Min (0-100)", group=group_visual, minval=0, maxval=100)
+
+use_min_abs_volume = input.bool(false, "🚫 Block signals under min volume", group=group_visual)
+min_abs_volume = input.int(1000, "Min Volume (absolute)", group=group_visual, minval=0)
+
+show_emas_vwap = input.bool(true, "Afficher EMA/VWAP", group=group_visual)
+show_dashboard = input.bool(true, "📊 Afficher Dashboard", group=group_visual)
+dashboard_position = input.string("Top Right", "Dashboard Position", options=["Top Right","Top Left","Bottom Right","Bottom Left"], group=group_visual)
+
+// ═══════════════════════════════════════════════════════════════════
+// 🔥 MULTI-TRADES
+// ═══════════════════════════════════════════════════════════════════
+group_multi = "🔥 MULTI-TRADES"
+max_concurrent_longs = input.int(3, "Max BUY simultanés", group=group_multi, minval=1, maxval=10)
+max_concurrent_shorts = input.int(3, "Max SELL simultanés", group=group_multi, minval=1, maxval=10)
+cooldown_buy_bars = input.int(5, "Cooldown BUY (bars)", group=group_multi, minval=0, maxval=500)
+cooldown_sell_bars = input.int(5, "Cooldown SELL (bars)", group=group_multi, minval=0, maxval=500)
+close_opposite_signals = input.bool(true, "🔄 Signal opposé ferme positions", group=group_multi)
+
+// ═══════════════════════════════════════════════════════════════════
+// 📏 HISTORIQUE TP/SL
+// ═══════════════════════════════════════════════════════════════════
+group_hist = "📏 HISTORIQUE TP/SL"
+max_trades_history = input.int(50, "Max trades historisés", group=group_hist, minval=1, maxval=100)
+line_extend_bars = input.int(5, "📏 Extension lignes (bars)", group=group_hist, minval=5, maxval=500)
+show_tp_sl_lines = input.bool(true, "Afficher lignes TP/SL", group=group_hist)
+show_tp_only_when_hit = input.bool(true, "TP lines seulement quand atteints", group=group_hist)
+show_hit_labels = input.bool(true, "🔥 Afficher labels TP/SL touchés", group=group_hist)
+
+// ═══════════════════════════════════════════════════════════════════
+// ⚙️ PARAMÈTRES
+// ═══════════════════════════════════════════════════════════════════
+group_params = "⚙️ PARAMETRES"
+rsi_avg_length = input.int(5, "RSI Avg", minval=1, maxval=500, group=group_params)
+stoch_d = input.int(2, "Stoch D", minval=1, maxval=500, group=group_params)
+stoch_20_k = input.int(20, "Stoch 20 K", minval=1, maxval=500, group=group_params)
+stoch_20_d = input.int(12, "Stoch 20 D", minval=1, maxval=500, group=group_params)
+stoch_20_smooth = input.int(5, "Stoch 20 Smooth", minval=1, maxval=500, group=group_params)
+bb_length = input.int(20, "BB Length", minval=1, maxval=500, group=group_params)
+bb_deviation = input.float(2.0, "BB Deviation", minval=0.1, maxval=10.0, step=0.1, group=group_params)
+utbot_period = input.int(10, "UTBOT Period", minval=1, maxval=500, group=group_params)
+utbot_atr_mult = input.float(0.5, "UTBOT ATR Mult", minval=0.1, maxval=5.0, step=0.1, group=group_params)
+volume_mult = input.float(1.2, "Volume Mult (spike)", minval=0.1, maxval=10.0, step=0.1, group=group_params)
+cciLength = input.int(20, "CCI Length", minval=1, group=group_params)
+
+// ═══════════════════════════════════════════════════════════════════
+// 🔧 FUNCTIONS
+// ═══════════════════════════════════════════════════════════════════
+f_txt(bool ok) => ok ? "✅" : "❌"
+
+f_score_color(int s) =>
+    color c = color.new(color.gray, 60)
+    if s >= 90
+        c := color.new(color.lime, 0)
+    else if s >= 80
+        c := color.new(color.yellow, 0)
+    else if s >= 70
+        c := color.new(color.orange, 0)
+    c
+
+f_quality(int s) =>
+    string q = "GOOD"
+    if s >= 90
+        q := "PERFECT"
+    else if s >= 80
+        q := "EXCELLENT"
+    q
+
+// ═══════════════════════════════════════════════════════════════════
+// ⏱️ AUTO-OPTIMIZATION PAR TF
+// ═══════════════════════════════════════════════════════════════════
+tf_minutes = timeframe.in_seconds(timeframe.period) / 60
+
+// ═══════════════════════════════════════════════════════════════════
+// 🔥 POIDS DYNAMIQUES PAR TF
+// ═══════════════════════════════════════════════════════════════════
+var float weight_vwap = w_vwap_trend
+var float weight_dmi = w_dmi_momentum
+var float weight_stoch_utbot = w_stoch_utbot
+var float weight_macd = w_macd
+var float weight_stoch_confirm = w_stoch_confirm
+var float weight_rsi = w_rsi
+var float weight_bb = w_bb
+var float weight_volume = w_volume_spike
+var float weight_structure = w_structure
+var float weight_ict = w_ict
+var float weight_cci = w_cci
+
+if use_dynamic_weights
+    if tf_minutes <= 5
+        weight_vwap := 12.0
+        weight_dmi := 10.0
+        weight_stoch_utbot := 15.0
+        weight_macd := 12.0
+        weight_stoch_confirm := 15.0
+        weight_rsi := 8.0
+        weight_bb := 8.0
+        weight_volume := 12.0
+        weight_structure := 8.0
+        weight_ict := 8.0
+        weight_cci := 5.0
+    else if tf_minutes <= 30
+        weight_vwap := 15.0
+        weight_dmi := 12.0
+        weight_stoch_utbot := 12.0
+        weight_macd := 12.0
+        weight_stoch_confirm := 12.0
+        weight_rsi := 8.0
+        weight_bb := 8.0
+        weight_volume := 10.0
+        weight_structure := 15.0
+        weight_ict := 12.0
+        weight_cci := 6.0
+    else if tf_minutes <= 240
+        weight_vwap := 12.0
+        weight_dmi := 15.0
+        weight_stoch_utbot := 10.0
+        weight_macd := 10.0
+        weight_stoch_confirm := 8.0
+        weight_rsi := 8.0
+        weight_bb := 6.0
+        weight_volume := 6.0
+        weight_structure := 20.0
+        weight_ict := 18.0
+        weight_cci := 8.0
+    else
+        weight_vwap := 10.0
+        weight_dmi := 18.0
+        weight_stoch_utbot := 8.0
+        weight_macd := 10.0
+        weight_stoch_confirm := 6.0
+        weight_rsi := 10.0
+        weight_bb := 5.0
+        weight_volume := 3.0
+        weight_structure := 25.0
+        weight_ict := 20.0
+        weight_cci := 10.0
+
+total_weight = math.max(weight_vwap + weight_dmi + weight_stoch_utbot + weight_macd + weight_stoch_confirm + weight_rsi + weight_bb + weight_volume + weight_structure + weight_ict + weight_cci, 1)
+
+// ═══════════════════════════════════════════════════════════════════
+// ⛩️ HEIKIN ASHI
+// ═══════════════════════════════════════════════════════════════════
+var float ha_close = na
+var float ha_open = na
+float ha_high = na
+float ha_low = na
+
+if use_heikin_ashi
+    ha_close := (open + high + low + close) / 4
+    ha_open := na(ha_open[1]) ? (open + close) / 2 : (ha_open[1] + ha_close[1]) / 2
+    ha_high := math.max(high, math.max(ha_open, ha_close))
+    ha_low := math.min(low, math.min(ha_open, ha_close))
+else
+    ha_close := close
+    ha_open := open
+    ha_high := high
+    ha_low := low
+
+price_close = use_heikin_ashi ? ha_close : close
+price_high  = use_heikin_ashi ? ha_high  : high
+price_low   = use_heikin_ashi ? ha_low   : low
+
+// ═══════════════════════════════════════════════════════════════════
+// 📊 INDICATEURS
+// ═══════════════════════════════════════════════════════════════════
+cciValue = ta.cci(close, cciLength)
+
+vwap_value = ta.vwap(price_close)
+ema9 = ta.ema(price_close, 9)
+ema20 = ta.ema(price_close, 20)
+
+rsi_value = ta.rsi(price_close, 14)
+rsi_avg = ta.sma(rsi_value, rsi_avg_length)
+
+stoch_k_value = ta.stoch(price_close, price_high, price_low, 8)
+stoch_d_value = ta.sma(stoch_k_value, stoch_d)
+
+[macd_line, signal_line, macd_hist] = ta.macd(price_close, 12, 26, 9)
+[di_plus, di_minus, adx] = ta.dmi(14, 14)
+
+atr_value = ta.atr(atr_period)
+
+stoch_20_raw = ta.stoch(price_close, price_high, price_low, stoch_20_k)
+stoch_20_k_line = ta.sma(stoch_20_raw, stoch_20_d)
+stoch_20_d_line = ta.sma(stoch_20_k_line, stoch_20_smooth)
+
+[bb_middle, bb_upper, bb_lower] = ta.bb(price_close, bb_length, bb_deviation)
+bb_position = (bb_upper - bb_lower) > 0 ? (price_close - bb_lower) / (bb_upper - bb_lower) : 0.5
+
+utbot_atr = ta.atr(utbot_period)
+utbot_highest = ta.highest(price_high, utbot_period)
+utbot_lowest = ta.lowest(price_low, utbot_period)
+utbot_resistance = utbot_highest - utbot_atr * utbot_atr_mult
+utbot_support = utbot_lowest + utbot_atr * utbot_atr_mult
+utbot_mid = (utbot_resistance + utbot_support) / 2
+utbot_bull_signal = price_close > utbot_mid
+utbot_bear_signal = price_close < utbot_mid
+
+avg_volume = ta.sma(volume, 20)
+volume_spike = volume > avg_volume * volume_mult
+
+// ═══════════════════════════════════════════════════════════════════
+// 🔄 SWING DETECTION
+// ═══════════════════════════════════════════════════════════════════
+swing_high = ta.pivothigh(price_high, swing_detection_length, swing_detection_length)
+swing_low = ta.pivotlow(price_low, swing_detection_length, swing_detection_length)
+
+var int last_swing_type = 0
+var bool allow_buy_signal = true
+var bool allow_sell_signal = true
+
+if not na(swing_high)
+    last_swing_type := 1
+    allow_sell_signal := true
+    
+if not na(swing_low)
+    last_swing_type := -1
+    allow_buy_signal := true
+
+// ═══════════════════════════════════════════════════════════════════
+// 📈 STRUCTURE & ICT
+// ═══════════════════════════════════════════════════════════════════
+bullish_structure = price_close > ema20
+bearish_structure = price_close < ema20
+
+// FVG
+real_high = high
+real_low = low
+
+bullish_fvg = real_high[2] < real_low
+bearish_fvg = real_low[2] > real_high
+
+if show_fvg and bullish_fvg
+    box.new(bar_index - 2, real_low, bar_index + 50, real_high[2], border_color=color.new(color.green, 85), bgcolor=color.new(color.green, 95), border_width=1)
+if show_fvg and bearish_fvg
+    box.new(bar_index - 2, real_low[2], bar_index + 50, real_high, border_color=color.new(color.red, 85), bgcolor=color.new(color.red, 95), border_width=1)
+
+// ═══════════════════════════════════════════════════════════════════
+// 🛡️ STOP LOSS - CALCUL AVEC SWING PIVOT
+// ═══════════════════════════════════════════════════════════════════
+// 🔥 DÉTECTION DES SWING PIVOTS POUR SL
+var float last_swing_low_price = na
+var float last_swing_high_price = na
+var int last_swing_low_bar = na
+var int last_swing_high_bar = na
+
+// Détection des pivots low (pour BUY)
+pivot_low = ta.pivotlow(price_low, pivot_lookback_left, pivot_lookback_right)
+if not na(pivot_low)
+    last_swing_low_price := pivot_low
+    last_swing_low_bar := bar_index - pivot_lookback_right
+
+// Détection des pivots high (pour SELL)
+pivot_high = ta.pivothigh(price_high, pivot_lookback_left, pivot_lookback_right)
+if not na(pivot_high)
+    last_swing_high_price := pivot_high
+    last_swing_high_bar := bar_index - pivot_lookback_right
+
+// 🎯 CALCUL DU STOP LOSS
+buffer_ticks = sl_buffer_cents * 0.01
+float optimal_stop_loss_bull = na
+float optimal_stop_loss_bear = na
+
+if sl_method == "Swing Pivot"
+    // Utilise le dernier swing pivot détecté - buffer
+    optimal_stop_loss_bull := na(last_swing_low_price) ? ta.lowest(price_low, swing_lookback) - buffer_ticks : last_swing_low_price - buffer_ticks
+    optimal_stop_loss_bear := na(last_swing_high_price) ? ta.highest(price_high, swing_lookback) + buffer_ticks : last_swing_high_price + buffer_ticks
+else if sl_method == "ATR"
+    // ATR stop loss
+    optimal_stop_loss_bull := price_close - (atr_value * atr_multiplier)
+    optimal_stop_loss_bear := price_close + (atr_value * atr_multiplier)
+else
+    // Lowest/Highest (méthode originale)
+    swing_low_precise = ta.lowest(price_low, swing_lookback)
+    swing_high_precise = ta.highest(price_high, swing_lookback)
+    optimal_stop_loss_bull := swing_low_precise - buffer_ticks
+    optimal_stop_loss_bear := swing_high_precise + buffer_ticks
+
+// ═══════════════════════════════════════════════════════════════════
+// 🔥 SCORING
+// ═══════════════════════════════════════════════════════════════════
+calc_buy_score() =>
+    float score = 0.0
+    if price_close > vwap_value and price_close > ema9
+        score += weight_vwap
+    if ema9 > ema20 and di_plus > di_minus
+        score += weight_dmi
+    if stoch_20_k_line > stoch_20_d_line and utbot_bull_signal
+        score += weight_stoch_utbot
+    if macd_line > signal_line
+        score += weight_macd
+    if ta.crossover(stoch_k_value, stoch_d_value)
+        score += weight_stoch_confirm
+    if rsi_value > 50
+        score += weight_rsi
+    if price_close > bb_middle
+        score += weight_bb
+    if volume_spike
+        score += weight_volume
+    if bullish_structure
+        score += weight_structure
+    if bullish_fvg
+        score += weight_ict
+    if cciValue > 0
+        score += weight_cci
+    score
+
+calc_sell_score() =>
+    float score = 0.0
+    if price_close < vwap_value and price_close < ema9
+        score += weight_vwap
+    if ema9 < ema20 and di_minus > di_plus
+        score += weight_dmi
+    if stoch_20_k_line < stoch_20_d_line and utbot_bear_signal
+        score += weight_stoch_utbot
+    if macd_line < signal_line
+        score += weight_macd
+    if ta.crossunder(stoch_k_value, stoch_d_value)
+        score += weight_stoch_confirm
+    if rsi_value < 50
+        score += weight_rsi
+    if price_close < bb_middle
+        score += weight_bb
+    if volume_spike
+        score += weight_volume
+    if bearish_structure
+        score += weight_structure
+    if bearish_fvg
+        score += weight_ict
+    if cciValue < 0
+        score += weight_cci
+    score
+
+buy_score_100 = int(math.min(math.round(100.0 * calc_buy_score() / total_weight), 100))
+sell_score_100 = int(math.min(math.round(100.0 * calc_sell_score() / total_weight), 100))
+
+vol_abs_ok = (not use_min_abs_volume) or (volume >= min_abs_volume)
+
+// 🎯 DIRECTION FILTER
+allow_long = trade_direction == "Both" or trade_direction == "Long Only"
+allow_short = trade_direction == "Both" or trade_direction == "Short Only"
+
+// 🔄 SWING FILTER
+swing_filter_buy = (not one_signal_per_swing) or allow_buy_signal
+swing_filter_sell = (not one_signal_per_swing) or allow_sell_signal
+
+buy_conditions = (buy_score_100 >= min_confluence_score) and vol_abs_ok and allow_long and swing_filter_buy
+sell_conditions = (sell_score_100 >= min_confluence_score) and vol_abs_ok and allow_short and swing_filter_sell
+
+// ═══════════════════════════════════════════════════════════════════
+// 🧊 COOLDOWN
+// ═══════════════════════════════════════════════════════════════════
+var int last_buy_bar = na
+var int last_sell_bar = na
+
+cooldown_buy_ok = na(last_buy_bar) or (bar_index - last_buy_bar >= cooldown_buy_bars)
+cooldown_sell_ok = na(last_sell_bar) or (bar_index - last_sell_bar >= cooldown_sell_bars)
+
+fireBuySignal = buy_conditions and not buy_conditions[1] and cooldown_buy_ok and barstate.isconfirmed
+fireSellSignal = sell_conditions and not sell_conditions[1] and cooldown_sell_ok and barstate.isconfirmed
+
+if fireBuySignal and one_signal_per_swing
+    allow_buy_signal := false
+
+if fireSellSignal and one_signal_per_swing
+    allow_sell_signal := false
+
+// ═══════════════════════════════════════════════════════════════════
+// 📊 PLOTS - LIGNES MINCES - COULEURS DANS STYLE TAB
+// ═══════════════════════════════════════════════════════════════════
+plot(ema9, "EMA 9", color.blue, linewidth=1, display=show_emas_vwap ? display.all : display.none)
+plot(ema20, "EMA 20", color.orange, linewidth=1, display=show_emas_vwap ? display.all : display.none)
+plot(vwap_value, "VWAP", color.aqua, linewidth=1, display=show_emas_vwap ? display.all : display.none)
+
+// ═══════════════════════════════════════════════════════════════════
+// 📏 MULTI-TRADES SYSTEM
+// ═══════════════════════════════════════════════════════════════════
+type Trade
+    int bar
+    bool isLong
+    float entry
+    float score
+    float sl
+    float activeSL
+    float tp1
+    float tp2
+    float tp3
+    float tp4
+    bool tp1Hit
+    bool tp2Hit
+    bool tp3Hit
+    bool tp4Hit
+    bool slHit
+    bool closed
+    line lTP1
+    line lTP2
+    line lTP3
+    line lTP4
+    line lSL
+    label labHitSL
+    label labHitTP1
+    label labHitTP2
+    label labHitTP3
+    label labHitTP4
+
+var array<Trade> trades = array.new<Trade>()
+
+f_line_new(_y, _col, _w) =>
+    line.new(bar_index, _y, bar_index + line_extend_bars, _y, extend=extend.none, color=_col, width=_w)
+
+f_delete_trade_visuals(Trade t) =>
+    if not na(t.lTP1)
+        line.delete(t.lTP1)
+    if not na(t.lTP2)
+        line.delete(t.lTP2)
+    if not na(t.lTP3)
+        line.delete(t.lTP3)
+    if not na(t.lTP4)
+        line.delete(t.lTP4)
+    if not na(t.lSL)
+        line.delete(t.lSL)
+    if not na(t.labHitSL)
+        label.delete(t.labHitSL)
+    if not na(t.labHitTP1)
+        label.delete(t.labHitTP1)
+    if not na(t.labHitTP2)
+        label.delete(t.labHitTP2)
+    if not na(t.labHitTP3)
+        label.delete(t.labHitTP3)
+    if not na(t.labHitTP4)
+        label.delete(t.labHitTP4)
+
+f_push_trade(Trade t) =>
+    array.push(trades, t)
+    while array.size(trades) > max_trades_history
+        old = array.shift(trades)
+        f_delete_trade_visuals(old)
+
+f_count_active_longs() =>
+    int cnt = 0
+    if array.size(trades) > 0
+        for i = 0 to array.size(trades) - 1
+            Trade t = array.get(trades, i)
+            if t.isLong and not t.closed
+                cnt += 1
+    cnt
+
+f_count_active_shorts() =>
+    int cnt = 0
+    if array.size(trades) > 0
+        for i = 0 to array.size(trades) - 1
+            Trade t = array.get(trades, i)
+            if not t.isLong and not t.closed
+                cnt += 1
+    cnt
+
+f_close_all_longs() =>
+    if array.size(trades) > 0
+        for i = 0 to array.size(trades) - 1
+            Trade t = array.get(trades, i)
+            if t.isLong and not t.closed
+                t.closed := true
+                if show_hit_labels and na(t.labHitSL)
+                    t.labHitSL := label.new(bar_index, close, "CLOSE ⚡", style=label.style_label_down, yloc=yloc.price, color=color.new(color.orange, 0), textcolor=color.white, size=size.small)
+                array.set(trades, i, t)
+
+f_close_all_shorts() =>
+    if array.size(trades) > 0
+        for i = 0 to array.size(trades) - 1
+            Trade t = array.get(trades, i)
+            if not t.isLong and not t.closed
+                t.closed := true
+                if show_hit_labels and na(t.labHitSL)
+                    t.labHitSL := label.new(bar_index, close, "CLOSE ⚡", style=label.style_label_up, yloc=yloc.price, color=color.new(color.orange, 0), textcolor=color.white, size=size.small)
+                array.set(trades, i, t)
+
+// 🔥🔥🔥 FIX ICI - FONCTION CORRIGÉE
+f_new_trade(bool _isLong, float _entry, float _sl, float _score100, bool _is_latest) =>
+    float risk = _isLong ? (_entry - _sl) : (_sl - _entry)
+    if not na(risk) and risk > 0
+        float tp1 = _isLong ? (_entry + risk * riskRR1) : (_entry - risk * riskRR1)
+        float tp2 = _isLong ? (_entry + risk * riskRR2) : (_entry - risk * riskRR2)
+        float tp3 = _isLong ? (_entry + risk * riskRR3) : (_entry - risk * riskRR3)
+        float tp4 = _isLong ? (_entry + risk * riskRR4) : (_entry - risk * riskRR4)
+
+        var line lsl = na
+        var line l1 = na
+        var line l2 = na
+        var line l3 = na
+        var line l4 = na
+        
+        if show_tp_sl_lines
+            if _isLong
+                lsl := f_line_new(_sl, color.red, 1)
+                // 🔥 TP SEULEMENT POUR LE DERNIER SIGNAL + FIX
+                if _is_latest
+                    if not show_tp_only_when_hit
+                        l1 := f_line_new(tp1, color.lime, 1)
+                        l2 := f_line_new(tp2, color.yellow, 1)
+                        l3 := f_line_new(tp3, color.orange, 1)
+                        l4 := f_line_new(tp4, color.fuchsia, 1)
+            else
+                lsl := f_line_new(_sl, color.red, 1)
+                // 🔥 TP SEULEMENT POUR LE DERNIER SIGNAL + FIX
+                if _is_latest
+                    if not show_tp_only_when_hit
+                        l1 := f_line_new(tp1, color.orange, 1)
+                        l2 := f_line_new(tp2, color.purple, 1)
+                        l3 := f_line_new(tp3, color.blue, 1)
+                        l4 := f_line_new(tp4, color.fuchsia, 1)
+
+        Trade t = Trade.new(bar_index, _isLong, _entry, _score100, _sl, _sl, tp1, tp2, tp3, tp4, false, false, false, false, false, false, l1, l2, l3, l4, lsl, na, na, na, na, na)
+        f_push_trade(t)
+
+if fireBuySignal
+    if close_opposite_signals
+        f_close_all_shorts()
+    
+    active_longs = f_count_active_longs()
+    if active_longs < max_concurrent_longs
+        f_new_trade(true, price_close, optimal_stop_loss_bull, buy_score_100, true)
+        last_buy_bar := bar_index
+
+if fireSellSignal
+    if close_opposite_signals
+        f_close_all_longs()
+    
+    active_shorts = f_count_active_shorts()
+    if active_shorts < max_concurrent_shorts
+        f_new_trade(false, price_close, optimal_stop_loss_bear, sell_score_100, true)
+        last_sell_bar := bar_index
+
+// 🥓🔥 LABELS AVEC TOOLTIP ULTRA COMPLET
+if show_signals and fireBuySignal
+    float entry = price_close
+    float sl = optimal_stop_loss_bull
+    float risk = entry - sl
+    float risk_percent_actual = (risk / entry) * 100
+    float tp1 = entry + (risk * riskRR1)
+    float tp2 = entry + (risk * riskRR2)
+    float tp3 = entry + (risk * riskRR3)
+    float tp4 = entry + (risk * riskRR4)
+    
+    // MONEY MANAGEMENT
+    float risk_amount = account_size * (risk_percent / 100)
+    float position_size = use_fixed_qty ? fixed_qty : (risk_amount / risk)
+    float position_value = position_size * entry
+    
+    float profit_tp1 = position_size * (tp1 - entry)
+    float profit_tp2 = position_size * (tp2 - entry)
+    float profit_tp3 = position_size * (tp3 - entry)
+    float profit_tp4 = position_size * (tp4 - entry)
+    
+    float profit_tp1_percent = ((tp1 - entry) / entry) * 100
+    float profit_tp2_percent = ((tp2 - entry) / entry) * 100
+    float profit_tp3_percent = ((tp3 - entry) / entry) * 100
+    float profit_tp4_percent = ((tp4 - entry) / entry) * 100
+    
+    // DELTA
+    float delta_tp1 = tp1 - entry
+    float delta_tp2 = tp2 - entry
+    float delta_tp3 = tp3 - entry
+    float delta_tp4 = tp4 - entry
+    float delta_sl = entry - sl
+    
+    // QUALITÉ
+    quality = f_quality(buy_score_100)
+    col = buy_score_100 >= 90 ? color.new(#00FF88, 0) : buy_score_100 >= 80 ? color.new(#FFD700, 0) : color.new(#FF6B35, 0)
+    label_text = "🟢 BUY " + quality + "\n" + str.tostring(buy_score_100) + "%"
+    
+    // 🔥 TOOLTIP MASSIF
+    tooltip = "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+              "🥓 BACON " + quality + " BUY\n" +
+              "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n" +
+              
+              "📊 SIGNAL QUALITY\n" +
+              "Score: " + str.tostring(buy_score_100) + "/100\n" +
+              "Timeframe: " + timeframe.period + "\n" +
+              "Time: " + str.format("{0,date,HH:mm}", timenow) + "\n\n" +
+              
+              "💰 ENTRY & STOP LOSS\n" +
+              "📍 Entry: " + str.tostring(entry, format.mintick) + "\n" +
+              "🛑 Stop Loss: " + str.tostring(sl, format.mintick) + "\n" +
+              "📉 Risk per share: " + str.tostring(risk, format.mintick) + "\n" +
+              "📊 Risk %: " + str.tostring(risk_percent_actual, "#.##") + "%\n" +
+              "💸 Delta SL: " + str.tostring(delta_sl, format.mintick) + "\n\n" +
+              
+              "💵 MONEY MANAGEMENT\n" +
+              "Account: $" + str.tostring(account_size, "#,###.00") + "\n" +
+              "Risk %: " + str.tostring(risk_percent, "#.##") + "%\n" +
+              "Risk $: $" + str.tostring(risk_amount, "#,###.00") + "\n" +
+              "Position Size: " + str.tostring(position_size, "#,###.##") + " shares\n" +
+              "Position Value: $" + str.tostring(position_value, "#,###.00") + "\n\n" +
+              
+              "🎯 TAKE PROFIT 1 (" + str.tostring(riskRR1, "#.#") + "R)\n" +
+              "Price: " + str.tostring(tp1, format.mintick) + "\n" +
+              "Delta: +" + str.tostring(delta_tp1, format.mintick) + "\n" +
+              "Profit: $" + str.tostring(profit_tp1, "#,###.00") + " (+" + str.tostring(profit_tp1_percent, "#.##") + "%)\n\n" +
+              
+              "🎯 TAKE PROFIT 2 (" + str.tostring(riskRR2, "#.#") + "R)\n" +
+              "Price: " + str.tostring(tp2, format.mintick) + "\n" +
+              "Delta: +" + str.tostring(delta_tp2, format.mintick) + "\n" +
+              "Profit: $" + str.tostring(profit_tp2, "#,###.00") + " (+" + str.tostring(profit_tp2_percent, "#.##") + "%)\n\n" +
+              
+              "🎯 TAKE PROFIT 3 (" + str.tostring(riskRR3, "#.#") + "R)\n" +
+              "Price: " + str.tostring(tp3, format.mintick) + "\n" +
+              "Delta: +" + str.tostring(delta_tp3, format.mintick) + "\n" +
+              "Profit: $" + str.tostring(profit_tp3, "#,###.00") + " (+" + str.tostring(profit_tp3_percent, "#.##") + "%)\n\n" +
+              
+              "🎯 TAKE PROFIT 4 (" + str.tostring(riskRR4, "#.#") + "R)\n" +
+              "Price: " + str.tostring(tp4, format.mintick) + "\n" +
+              "Delta: +" + str.tostring(delta_tp4, format.mintick) + "\n" +
+              "Profit: $" + str.tostring(profit_tp4, "#,###.00") + " (+" + str.tostring(profit_tp4_percent, "#.##") + "%)\n\n" +
+              
+              "📈 TECHNICAL INDICATORS\n" +
+              "RSI: " + str.tostring(rsi_value, "#.##") + "\n" +
+              "MACD: " + str.tostring(macd_line, "#.####") + "\n" +
+              "ADX: " + str.tostring(adx, "#.##") + "\n" +
+              "Volume: " + str.tostring(volume, "#,###") + (volume_spike ? " 🔥" : "") + "\n" +
+              "ATR: " + str.tostring(atr_value, format.mintick) + "\n\n" +
+              
+              "🔢 POSITIONS ACTIVES\n" +
+              "Longs: " + str.tostring(f_count_active_longs()) + "/" + str.tostring(max_concurrent_longs) + "\n" +
+              "Shorts: " + str.tostring(f_count_active_shorts()) + "/" + str.tostring(max_concurrent_shorts) + "\n\n" +
+              
+              "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    
+    label.new(bar_index, price_low, label_text, style=label.style_label_up, color=col, textcolor=color.white, size=size.normal, yloc=yloc.belowbar, tooltip=tooltip)
+
+if show_signals and fireSellSignal
+    float entry = price_close
+    float sl = optimal_stop_loss_bear
+    float risk = sl - entry
+    float risk_percent_actual = (risk / entry) * 100
+    float tp1 = entry - (risk * riskRR1)
+    float tp2 = entry - (risk * riskRR2)
+    float tp3 = entry - (risk * riskRR3)
+    float tp4 = entry - (risk * riskRR4)
+    
+    // MONEY MANAGEMENT
+    float risk_amount = account_size * (risk_percent / 100)
+    float position_size = use_fixed_qty ? fixed_qty : (risk_amount / risk)
+    float position_value = position_size * entry
+    
+    float profit_tp1 = position_size * (entry - tp1)
+    float profit_tp2 = position_size * (entry - tp2)
+    float profit_tp3 = position_size * (entry - tp3)
+    float profit_tp4 = position_size * (entry - tp4)
+    
+    float profit_tp1_percent = ((entry - tp1) / entry) * 100
+    float profit_tp2_percent = ((entry - tp2) / entry) * 100
+    float profit_tp3_percent = ((entry - tp3) / entry) * 100
+    float profit_tp4_percent = ((entry - tp4) / entry) * 100
+    
+    // DELTA
+    float delta_tp1 = entry - tp1
+    float delta_tp2 = entry - tp2
+    float delta_tp3 = entry - tp3
+    float delta_tp4 = entry - tp4
+    float delta_sl = sl - entry
+    
+    // QUALITÉ
+    quality = f_quality(sell_score_100)
+    col = sell_score_100 >= 90 ? color.new(#FF0080, 0) : sell_score_100 >= 80 ? color.new(#8A2BE2, 0) : color.new(#1E90FF, 0)
+    label_text = "🔴 SELL " + quality + "\n" + str.tostring(sell_score_100) + "%"
+    
+    // 🔥 TOOLTIP MASSIF
+    tooltip = "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+              "🥓 BACON " + quality + " SELL\n" +
+              "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n" +
+              
+              "📊 SIGNAL QUALITY\n" +
+              "Score: " + str.tostring(sell_score_100) + "/100\n" +
+              "Timeframe: " + timeframe.period + "\n" +
+              "Time: " + str.format("{0,date,HH:mm}", timenow) + "\n\n" +
+              
+              "💰 ENTRY & STOP LOSS\n" +
+              "📍 Entry: " + str.tostring(entry, format.mintick) + "\n" +
+              "🛑 Stop Loss: " + str.tostring(sl, format.mintick) + "\n" +
+              "📉 Risk per share: " + str.tostring(risk, format.mintick) + "\n" +
+              "📊 Risk %: " + str.tostring(risk_percent_actual, "#.##") + "%\n" +
+              "💸 Delta SL: " + str.tostring(delta_sl, format.mintick) + "\n\n" +
+              
+              "💵 MONEY MANAGEMENT\n" +
+              "Account: $" + str.tostring(account_size, "#,###.00") + "\n" +
+              "Risk %: " + str.tostring(risk_percent, "#.##") + "%\n" +
+              "Risk $: $" + str.tostring(risk_amount, "#,###.00") + "\n" +
+              "Position Size: " + str.tostring(position_size, "#,###.##") + " shares\n" +
+              "Position Value: $" + str.tostring(position_value, "#,###.00") + "\n\n" +
+              
+              "🎯 TAKE PROFIT 1 (" + str.tostring(riskRR1, "#.#") + "R)\n" +
+              "Price: " + str.tostring(tp1, format.mintick) + "\n" +
+              "Delta: -" + str.tostring(delta_tp1, format.mintick) + "\n" +
+              "Profit: $" + str.tostring(profit_tp1, "#,###.00") + " (+" + str.tostring(profit_tp1_percent, "#.##") + "%)\n\n" +
+              
+              "🎯 TAKE PROFIT 2 (" + str.tostring(riskRR2, "#.#") + "R)\n" +
+              "Price: " + str.tostring(tp2, format.mintick) + "\n" +
+              "Delta: -" + str.tostring(delta_tp2, format.mintick) + "\n" +
+              "Profit: $" + str.tostring(profit_tp2, "#,###.00") + " (+" + str.tostring(profit_tp2_percent, "#.##") + "%)\n\n" +
+              
+              "🎯 TAKE PROFIT 3 (" + str.tostring(riskRR3, "#.#") + "R)\n" +
+              "Price: " + str.tostring(tp3, format.mintick) + "\n" +
+              "Delta: -" + str.tostring(delta_tp3, format.mintick) + "\n" +
+              "Profit: $" + str.tostring(profit_tp3, "#,###.00") + " (+" + str.tostring(profit_tp3_percent, "#.##") + "%)\n\n" +
+              
+              "🎯 TAKE PROFIT 4 (" + str.tostring(riskRR4, "#.#") + "R)\n" +
+              "Price: " + str.tostring(tp4, format.mintick) + "\n" +
+              "Delta: -" + str.tostring(delta_tp4, format.mintick) + "\n" +
+              "Profit: $" + str.tostring(profit_tp4, "#,###.00") + " (+" + str.tostring(profit_tp4_percent, "#.##") + "%)\n\n" +
+              
+              "📈 TECHNICAL INDICATORS\n" +
+              "RSI: " + str.tostring(rsi_value, "#.##") + "\n" +
+              "MACD: " + str.tostring(macd_line, "#.####") + "\n" +
+              "ADX: " + str.tostring(adx, "#.##") + "\n" +
+              "Volume: " + str.tostring(volume, "#,###") + (volume_spike ? " 🔥" : "") + "\n" +
+              "ATR: " + str.tostring(atr_value, format.mintick) + "\n\n" +
+              
+              "🔢 POSITIONS ACTIVES\n" +
+              "Longs: " + str.tostring(f_count_active_longs()) + "/" + str.tostring(max_concurrent_longs) + "\n" +
+              "Shorts: " + str.tostring(f_count_active_shorts()) + "/" + str.tostring(max_concurrent_shorts) + "\n\n" +
+              
+              "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    
+    label.new(bar_index, price_high, label_text, style=label.style_label_down, color=col, textcolor=color.white, size=size.normal, yloc=yloc.abovebar, tooltip=tooltip)
+
+// 🔥 UPDATE TRADES
+if array.size(trades) > 0
+    for i = 0 to array.size(trades) - 1
+        Trade t = array.get(trades, i)
+        if not t.closed
+            // 🔥 CHANGE COULEUR SL SI BREAKEVEN
+            bool is_at_breakeven = math.abs(t.activeSL - t.entry) < 0.001
+            
+            if show_tp_sl_lines and not na(t.lSL)
+                line.set_y1(t.lSL, t.activeSL)
+                line.set_y2(t.lSL, t.activeSL)
+                // 🔥 CHANGEMENT DE COULEUR - ORANGE POUR BE
+                if is_at_breakeven
+                    line.set_color(t.lSL, color.orange)
+                else
+                    line.set_color(t.lSL, color.red)
+            
+            if show_tp_sl_lines
+                if not na(t.lTP1)
+                    line.set_x2(t.lTP1, bar_index + line_extend_bars)
+                if not na(t.lTP2)
+                    line.set_x2(t.lTP2, bar_index + line_extend_bars)
+                if not na(t.lTP3)
+                    line.set_x2(t.lTP3, bar_index + line_extend_bars)
+                if not na(t.lTP4)
+                    line.set_x2(t.lTP4, bar_index + line_extend_bars)
+                if not na(t.lSL)
+                    line.set_x2(t.lSL, bar_index + line_extend_bars)
+
+            if t.isLong
+                if (not t.slHit) and (price_low <= t.activeSL)
+                    t.slHit := true
+                    t.closed := true
+                    if show_hit_labels and na(t.labHitSL)
+                        t.labHitSL := label.new(bar_index, t.activeSL, "SL 🛑", style=label.style_label_up, yloc=yloc.price, color=color.new(color.red, 0), textcolor=color.white, size=size.small)
+
+                if not t.closed
+                    if (not t.tp1Hit) and (price_high >= t.tp1)
+                        t.tp1Hit := true
+                        if show_hit_labels and na(t.labHitTP1)
+                            t.labHitTP1 := label.new(bar_index, t.tp1, "TP1 ✅", style=label.style_label_down, yloc=yloc.price, color=color.new(color.lime, 0), textcolor=color.black, size=size.small)
+                        if move_sl_to_breakeven
+                            t.activeSL := t.entry
+                        if show_tp_sl_lines and show_tp_only_when_hit and na(t.lTP1)
+                            t.lTP1 := f_line_new(t.tp1, color.lime, 1)
+
+                    if (not t.tp2Hit) and (price_high >= t.tp2)
+                        t.tp2Hit := true
+                        if show_hit_labels and na(t.labHitTP2)
+                            t.labHitTP2 := label.new(bar_index, t.tp2, "TP2 ✅", style=label.style_label_down, yloc=yloc.price, color=color.new(color.yellow, 0), textcolor=color.black, size=size.small)
+                        if show_tp_sl_lines and show_tp_only_when_hit and na(t.lTP2)
+                            t.lTP2 := f_line_new(t.tp2, color.yellow, 1)
+
+                    if (not t.tp3Hit) and (price_high >= t.tp3)
+                        t.tp3Hit := true
+                        if show_hit_labels and na(t.labHitTP3)
+                            t.labHitTP3 := label.new(bar_index, t.tp3, "TP3 ✅", style=label.style_label_down, yloc=yloc.price, color=color.new(color.orange, 0), textcolor=color.white, size=size.small)
+                        if show_tp_sl_lines and show_tp_only_when_hit and na(t.lTP3)
+                            t.lTP3 := f_line_new(t.tp3, color.orange, 1)
+
+                    if (not t.tp4Hit) and (price_high >= t.tp4)
+                        t.tp4Hit := true
+                        t.closed := true
+                        if show_hit_labels and na(t.labHitTP4)
+                            t.labHitTP4 := label.new(bar_index, t.tp4, "TP4 ✅", style=label.style_label_down, yloc=yloc.price, color=color.new(color.fuchsia, 0), textcolor=color.white, size=size.small)
+                        if show_tp_sl_lines and show_tp_only_when_hit and na(t.lTP4)
+                            t.lTP4 := f_line_new(t.tp4, color.fuchsia, 1)
+            else
+                if (not t.slHit) and (price_high >= t.activeSL)
+                    t.slHit := true
+                    t.closed := true
+                    if show_hit_labels and na(t.labHitSL)
+                        t.labHitSL := label.new(bar_index, t.activeSL, "SL 🛑", style=label.style_label_down, yloc=yloc.price, color=color.new(color.red, 0), textcolor=color.white, size=size.small)
+
+                if not t.closed
+                    if (not t.tp1Hit) and (price_low <= t.tp1)
+                        t.tp1Hit := true
+                        if show_hit_labels and na(t.labHitTP1)
+                            t.labHitTP1 := label.new(bar_index, t.tp1, "TP1 ✅", style=label.style_label_up, yloc=yloc.price, color=color.new(color.lime, 0), textcolor=color.black, size=size.small)
+                        if move_sl_to_breakeven
+                            t.activeSL := t.entry
+                        if show_tp_sl_lines and show_tp_only_when_hit and na(t.lTP1)
+                            t.lTP1 := f_line_new(t.tp1, color.orange, 1)
+
+                    if (not t.tp2Hit) and (price_low <= t.tp2)
+                        t.tp2Hit := true
+                        if show_hit_labels and na(t.labHitTP2)
+                            t.labHitTP2 := label.new(bar_index, t.tp2, "TP2 ✅", style=label.style_label_up, yloc=yloc.price, color=color.new(color.yellow, 0), textcolor=color.black, size=size.small)
+                        if show_tp_sl_lines and show_tp_only_when_hit and na(t.lTP2)
+                            t.lTP2 := f_line_new(t.tp2, color.purple, 1)
+
+                    if (not t.tp3Hit) and (price_low <= t.tp3)
+                        t.tp3Hit := true
+                        if show_hit_labels and na(t.labHitTP3)
+                            t.labHitTP3 := label.new(bar_index, t.tp3, "TP3 ✅", style=label.style_label_up, yloc=yloc.price, color=color.new(color.orange, 0), textcolor=color.white, size=size.small)
+                        if show_tp_sl_lines and show_tp_only_when_hit and na(t.lTP3)
+                            t.lTP3 := f_line_new(t.tp3, color.blue, 1)
+
+                    if (not t.tp4Hit) and (price_low <= t.tp4)
+                        t.tp4Hit := true
+                        t.closed := true
+                        if show_hit_labels and na(t.labHitTP4)
+                            t.labHitTP4 := label.new(bar_index, t.tp4, "TP4 ✅", style=label.style_label_up, yloc=yloc.price, color=color.new(color.fuchsia, 0), textcolor=color.white, size=size.small)
+                        if show_tp_sl_lines and show_tp_only_when_hit and na(t.lTP4)
+                            t.lTP4 := f_line_new(t.tp4, color.fuchsia, 1)
+
+        array.set(trades, i, t)
+
+// ═══════════════════════════════════════════════════════════════════
+// 📊 DASHBOARD COMPACT AVEC TRADES ACTIFS
+// ═══════════════════════════════════════════════════════════════════
+table_pos = dashboard_position == "Top Right" ? position.top_right :
+     dashboard_position == "Top Left" ? position.top_left :
+     dashboard_position == "Bottom Right" ? position.bottom_right :
+     position.bottom_left
+
+var table dash = na
+if show_dashboard and na(dash)
+    dash := table.new(table_pos, 4, 15, border_width=1)
+
+if show_dashboard and barstate.islast and not na(dash)
+    table.cell(dash, 0, 0, "🥓 BaconAlgo 🥓 ", text_color=color.white, bgcolor=color.new(#FF6B00, 0))
+    table.cell(dash, 1, 0, "BUY", text_color=color.white, bgcolor=color.new(color.green, 35))
+    table.cell(dash, 2, 0, "SELL", text_color=color.white, bgcolor=color.new(color.red, 35))
+    table.cell(dash, 3, 0, "PTS", text_color=color.white, bgcolor=color.new(color.gray, 60))
+    
+    int r = 1
+    
+    table.cell(dash, 0, r, "📍 VWAP", text_color=color.white)
+    table.cell(dash, 1, r, f_txt(price_close > vwap_value), text_color=color.white)
+    table.cell(dash, 2, r, f_txt(price_close < vwap_value), text_color=color.white)
+    table.cell(dash, 3, r, str.tostring(int(weight_vwap)), text_color=color.silver, text_size=size.tiny)
+    r += 1
+    
+    table.cell(dash, 0, r, "📈 TREND+DMI", text_color=color.white)
+    table.cell(dash, 1, r, f_txt(ema9 > ema20 and di_plus > di_minus), text_color=color.white)
+    table.cell(dash, 2, r, f_txt(ema9 < ema20 and di_minus > di_plus), text_color=color.white)
+    table.cell(dash, 3, r, str.tostring(int(weight_dmi)), text_color=color.silver, text_size=size.tiny)
+    r += 1
+    
+    table.cell(dash, 0, r, "⚡ Stoch+UTBOT", text_color=color.white)
+    table.cell(dash, 1, r, f_txt(stoch_20_k_line > stoch_20_d_line and utbot_bull_signal), text_color=color.white)
+    table.cell(dash, 2, r, f_txt(stoch_20_k_line < stoch_20_d_line and utbot_bear_signal), text_color=color.white)
+    table.cell(dash, 3, r, str.tostring(int(weight_stoch_utbot)), text_color=color.silver, text_size=size.tiny)
+    r += 1
+    
+    table.cell(dash, 0, r, "📊 MACD", text_color=color.white)
+    table.cell(dash, 1, r, f_txt(macd_line > signal_line), text_color=color.white)
+    table.cell(dash, 2, r, f_txt(macd_line < signal_line), text_color=color.white)
+    table.cell(dash, 3, r, str.tostring(int(weight_macd)), text_color=color.silver, text_size=size.tiny)
+    r += 1
+    
+    table.cell(dash, 0, r, "⚡ Stoch Conf", text_color=color.white)
+    table.cell(dash, 1, r, f_txt(ta.crossover(stoch_k_value, stoch_d_value)), text_color=color.white)
+    table.cell(dash, 2, r, f_txt(ta.crossunder(stoch_k_value, stoch_d_value)), text_color=color.white)
+    table.cell(dash, 3, r, str.tostring(int(weight_stoch_confirm)), text_color=color.silver, text_size=size.tiny)
+    r += 1
+    
+    table.cell(dash, 0, r, "⚡ RSI", text_color=color.white)
+    table.cell(dash, 1, r, f_txt(rsi_value > 50), text_color=color.white)
+    table.cell(dash, 2, r, f_txt(rsi_value < 50), text_color=color.white)
+    table.cell(dash, 3, r, str.tostring(int(weight_rsi)), text_color=color.silver, text_size=size.tiny)
+    r += 1
+    
+    table.cell(dash, 0, r, "📦 BB", text_color=color.white)
+    table.cell(dash, 1, r, f_txt(price_close > bb_middle), text_color=color.white)
+    table.cell(dash, 2, r, f_txt(price_close < bb_middle), text_color=color.white)
+    table.cell(dash, 3, r, str.tostring(int(weight_bb)), text_color=color.silver, text_size=size.tiny)
+    r += 1
+    
+    table.cell(dash, 0, r, "💥 Volume", text_color=color.white)
+    table.cell(dash, 1, r, f_txt(volume_spike), text_color=color.white)
+    table.cell(dash, 2, r, f_txt(volume_spike), text_color=color.white)
+    table.cell(dash, 3, r, str.tostring(int(weight_volume)), text_color=color.silver, text_size=size.tiny)
+    r += 1
+    
+    table.cell(dash, 0, r, "🔨 Structure", text_color=color.white)
+    table.cell(dash, 1, r, f_txt(bullish_structure), text_color=color.white)
+    table.cell(dash, 2, r, f_txt(bearish_structure), text_color=color.white)
+    table.cell(dash, 3, r, str.tostring(int(weight_structure)), text_color=color.silver, text_size=size.tiny)
+    r += 1
+    
+    table.cell(dash, 0, r, "🎯 FVG", text_color=color.white)
+    table.cell(dash, 1, r, f_txt(bullish_fvg), text_color=color.white)
+    table.cell(dash, 2, r, f_txt(bearish_fvg), text_color=color.white)
+    table.cell(dash, 3, r, str.tostring(int(weight_ict)), text_color=color.silver, text_size=size.tiny)
+    r += 1
+    
+    table.cell(dash, 0, r, "📎 CCI", text_color=color.white)
+    table.cell(dash, 1, r, f_txt(cciValue > 0), text_color=color.white)
+    table.cell(dash, 2, r, f_txt(cciValue < 0), text_color=color.white)
+    table.cell(dash, 3, r, str.tostring(int(weight_cci)), text_color=color.silver, text_size=size.tiny)
+    r += 1
+    
+    table.cell(dash, 0, r, "SCORE", text_color=color.white, bgcolor=color.new(#FF6B00, 0))
+    table.cell(dash, 1, r, str.tostring(buy_score_100) + "/100", text_color=color.white, bgcolor=f_score_color(buy_score_100))
+    table.cell(dash, 2, r, str.tostring(sell_score_100) + "/100", text_color=color.white, bgcolor=f_score_color(sell_score_100))
+    table.cell(dash, 3, r, "MIN " + str.tostring(min_confluence_score), text_color=color.white, bgcolor=color.new(color.gray, 70), text_size=size.tiny)
+    r += 1
+    
+    // 🔥 COMPTEUR DE TRADES ACTIFS
+    int active_longs = f_count_active_longs()
+    int active_shorts = f_count_active_shorts()
+    
+    table.cell(dash, 0, r, "SIGNAL", text_color=color.white, bgcolor=color.new(#FF6B00, 0))
+    
+    string buy_text = buy_conditions ? "GO 🥓" : "WAIT ⏳"
+    color buy_bg = buy_conditions ? color.new(color.green, 0) : color.new(color.gray, 70)
+    table.cell(dash, 1, r, buy_text, text_color=color.white, bgcolor=buy_bg)
+    
+    string sell_text = sell_conditions ? "GO 🥓" : "WAIT ⏳"
+    color sell_bg = sell_conditions ? color.new(color.red, 0) : color.new(color.gray, 70)
+    table.cell(dash, 2, r, sell_text, text_color=color.white, bgcolor=sell_bg)
+    
+    table.cell(dash, 3, r, "", text_color=color.white)
+    r += 1
+    
+    // 🔥 NOUVELLE LIGNE: TRADES ACTIFS
+    table.cell(dash, 0, r, "TRADES", text_color=color.white, bgcolor=color.new(#FF6B00, 0))
+    
+    string longs_text = str.tostring(active_longs) + "/" + str.tostring(max_concurrent_longs)
+    color longs_bg = active_longs > 0 ? color.new(color.green, 30) : color.new(color.gray, 70)
+    table.cell(dash, 1, r, longs_text, text_color=color.white, bgcolor=longs_bg)
+    
+    string shorts_text = str.tostring(active_shorts) + "/" + str.tostring(max_concurrent_shorts)
+    color shorts_bg = active_shorts > 0 ? color.new(color.red, 30) : color.new(color.gray, 70)
+    table.cell(dash, 2, r, shorts_text, text_color=color.white, bgcolor=shorts_bg)
+    
+    int total_trades = active_longs + active_shorts
+    table.cell(dash, 3, r, str.tostring(total_trades), text_color=color.white, bgcolor=color.new(color.purple, 50), text_size=size.small)
