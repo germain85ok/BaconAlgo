@@ -17,8 +17,8 @@
 
 	function showToastMessage(type: 'success' | 'error' | 'warning' | 'info') {
 		toastType = type;
-		showToast = true;
-		setTimeout(() => (showToast = false), 100);
+		showToast = false;
+		setTimeout(() => (showToast = true), 10);
 	}
 
 	function handleLogin() {
