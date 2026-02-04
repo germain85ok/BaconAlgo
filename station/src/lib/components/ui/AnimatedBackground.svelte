@@ -3,7 +3,7 @@
 	
 	let canvas: HTMLCanvasElement;
 	let ctx: CanvasRenderingContext2D;
-	let animationFrame: number;
+	let animationFrameId: number;
 	
 	interface Particle {
 		x: number;
@@ -25,7 +25,7 @@
 		window.addEventListener('resize', resizeCanvas);
 		
 		return () => {
-			cancelAnimationFrame(animationFrame);
+			if (animationFrameId) cancelAnimationFrame(animationFrameId);
 			window.removeEventListener('resize', resizeCanvas);
 		};
 	});
@@ -86,7 +86,7 @@
 			}
 		});
 		
-		animationFrame = requestAnimationFrame(animate);
+		animationFrameId = requestAnimationFrame(animate);
 	}
 	
 	function drawGrid() {
