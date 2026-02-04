@@ -4,9 +4,9 @@
 
   interface Signal {
     ticker: string;
-    direction: 'LONG' | 'SHORT' | 'BUY' | 'SELL';
+    direction: 'LONG' | 'SHORT';
     score: number;
-    grade: 'S' | 'A' | 'B' | 'C' | 'Legendary' | 'Epic' | 'Rare' | 'Common';
+    grade: 'S' | 'A' | 'B' | 'C';
     entry: number;
     stop_loss: number;
     take_profit_1: number;
@@ -27,15 +27,11 @@
   let { signal, onAddToWatchlist, onSetAlert }: Props = $props();
 
   const directionColor = $derived(
-    signal.direction === 'LONG' || signal.direction === 'BUY'
-      ? 'buy'
-      : 'sell'
+    signal.direction === 'LONG' ? 'buy' : 'sell'
   );
 
   const directionLabel = $derived(
-    signal.direction === 'LONG' || signal.direction === 'BUY'
-      ? 'BUY'
-      : 'SELL'
+    signal.direction === 'LONG' ? 'BUY' : 'SELL'
   );
 
   const formatPrice = (price: number): string => {

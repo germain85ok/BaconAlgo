@@ -1,5 +1,5 @@
 <script lang="ts">
-  type Grade = 'S' | 'A' | 'B' | 'C' | 'Legendary' | 'Epic' | 'Rare' | 'Common';
+  type Grade = 'S' | 'A' | 'B' | 'C';
 
   interface Props {
     grade: Grade;
@@ -11,11 +11,7 @@
     'S': { name: 'Legendary', icon: '👑', class: 'legendary' },
     'A': { name: 'Epic', icon: '💎', class: 'epic' },
     'B': { name: 'Rare', icon: '💠', class: 'rare' },
-    'C': { name: 'Common', icon: '⚪', class: 'common' },
-    'Legendary': { name: 'Legendary', icon: '👑', class: 'legendary' },
-    'Epic': { name: 'Epic', icon: '💎', class: 'epic' },
-    'Rare': { name: 'Rare', icon: '💠', class: 'rare' },
-    'Common': { name: 'Common', icon: '⚪', class: 'common' }
+    'C': { name: 'Common', icon: '⚪', class: 'common' }
   };
 
   const config = $derived(gradeMap[grade] || gradeMap['C']);

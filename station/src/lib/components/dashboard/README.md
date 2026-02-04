@@ -12,9 +12,9 @@ Trading signal display card with comprehensive signal information.
 ```typescript
 interface Signal {
   ticker: string;
-  direction: 'LONG' | 'SHORT' | 'BUY' | 'SELL';
+  direction: 'LONG' | 'SHORT';
   score: number;
-  grade: 'S' | 'A' | 'B' | 'C' | 'Legendary' | 'Epic' | 'Rare' | 'Common';
+  grade: 'S' | 'A' | 'B' | 'C';
   entry: number;
   stop_loss: number;
   take_profit_1: number;
@@ -40,9 +40,9 @@ interface Props {
 
   const signal = {
     ticker: 'AAPL',
-    direction: 'LONG',
+    direction: 'LONG',  // Use 'LONG' or 'SHORT' (displayed as BUY/SELL)
     score: 85,
-    grade: 'A',
+    grade: 'A',  // Use 'S', 'A', 'B', or 'C' (auto-maps to Legendary/Epic/Rare/Common)
     entry: 175.50,
     stop_loss: 172.00,
     take_profit_1: 178.00,
@@ -64,8 +64,8 @@ interface Props {
 
 **Features:**
 - Glass morphism card with hover effects
-- Direction badge (BUY=green, SELL=red)
-- Integrated score gauge and grade badge
+- Direction badge: 'LONG' displays as BUY (green), 'SHORT' displays as SELL (red)
+- Integrated score gauge and grade badge (letter grades auto-map to word grades)
 - Price levels with color coding (Entry=blue, SL=red, TP=green)
 - Risk:Reward ratio display
 - SMC tags as pills
@@ -116,9 +116,15 @@ Signal grade badge with shimmer effects.
 **Props:**
 ```typescript
 interface Props {
-  grade: 'S' | 'A' | 'B' | 'C' | 'Legendary' | 'Epic' | 'Rare' | 'Common';
+  grade: 'S' | 'A' | 'B' | 'C';
 }
 ```
+
+**Grade Mapping:**
+- S → Legendary (👑 gold gradient)
+- A → Epic (💎 purple-pink gradient)
+- B → Rare (💠 blue-cyan gradient)
+- C → Common (⚪ gray gradient)
 
 **Usage:**
 ```svelte
@@ -126,17 +132,19 @@ interface Props {
   import { GradeBadge } from '$lib/components/dashboard';
 </script>
 
-<GradeBadge grade="Legendary" />
-<GradeBadge grade="A" />  <!-- Maps to Epic -->
+<GradeBadge grade="S" />  <!-- Legendary -->
+<GradeBadge grade="A" />  <!-- Epic -->
+<GradeBadge grade="B" />  <!-- Rare -->
+<GradeBadge grade="C" />  <!-- Common -->
 ```
 
 **Features:**
-- Grade mapping: S→Legendary, A→Epic, B→Rare, C→Common
-- Legendary: 👑 gold gradient with glow
-- Epic: 💎 purple-pink gradient with glow
-- Rare: 💠 blue-cyan gradient with glow
-- Common: ⚪ gray gradient
-- Shimmer animation for Legendary and Epic
+- Grade mapping:
+  - S → Legendary (👑 gold gradient with glow)
+  - A → Epic (💎 purple-pink gradient with glow)
+  - B → Rare (💠 blue-cyan gradient with glow)
+  - C → Common (⚪ gray gradient)
+- Shimmer animation for S (Legendary) and A (Epic)
 - Hover scale effect
 
 ---

@@ -79,10 +79,10 @@
   <section class="demo-section">
     <h2>Grade Badges</h2>
     <div class="badge-examples">
-      <GradeBadge grade="Legendary" />
-      <GradeBadge grade="Epic" />
-      <GradeBadge grade="Rare" />
-      <GradeBadge grade="Common" />
+      <GradeBadge grade="S" />
+      <GradeBadge grade="A" />
+      <GradeBadge grade="B" />
+      <GradeBadge grade="C" />
     </div>
   </section>
 
