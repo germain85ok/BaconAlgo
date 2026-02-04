@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import GlassCard from '$lib/components/GlassCard.svelte';
   import SignalCard from '$lib/components/SignalCard.svelte';
+  import { API_BASE_URL } from '$lib/config';
   
   let signals = [];
   let filterType = 'all';
@@ -15,7 +16,7 @@
       if (filterType !== 'all') params.append('type', filterType);
       params.append('min_score', minScore);
       
-      const response = await fetch(`http://localhost:3000/api/scan/all?${params}`);
+      const response = await fetch(`${API_BASE_URL}/api/scan/all?${params}`);
       signals = await response.json();
     } catch (error) {
       console.error('Failed to fetch signals:', error);
