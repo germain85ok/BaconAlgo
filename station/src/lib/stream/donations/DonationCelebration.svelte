@@ -92,7 +92,7 @@
 	});
 </script>
 
-<canvas bind:this={canvas} class="confetti-canvas" />
+<canvas bind:this={canvas} class="confetti-canvas"></canvas>
 
 <style>
 	.confetti-canvas {

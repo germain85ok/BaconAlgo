@@ -87,9 +87,9 @@
 				<div class="song-number">
 					{#if song.isPlaying}
 						<div class="equalizer">
-							<span />
-							<span />
-							<span />
+							<span></span>
+							<span></span>
+							<span></span>
 						</div>
 					{:else}
 						{index + 1}

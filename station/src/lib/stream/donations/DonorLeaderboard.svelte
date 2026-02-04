@@ -49,11 +49,11 @@
 				<div class="donor-info">
 					<div class="donor-name">{donor.name || 'Anonymous'}</div>
 					<div class="donor-stats">
-						<span class="donation-count">{donor.total_donations} donations</span>
+						<span class="donation-count">{donor.donation_count} donations</span>
 					</div>
 				</div>
 
-				<div class="total-amount">${donor.total_amount.toFixed(2)}</div>
+				<div class="total-amount">${donor.total_donated.toFixed(2)}</div>
 			</div>
 		{/each}
 

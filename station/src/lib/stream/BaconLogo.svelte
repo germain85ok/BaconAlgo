@@ -95,7 +95,7 @@
 		</text>
 	</svg>
 
-	<div class="glow-effect" />
+	<div class="glow-effect"></div>
 </div>
 
 <style>

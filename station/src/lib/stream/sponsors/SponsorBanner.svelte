@@ -69,7 +69,7 @@
 			<div class="cta-section">
 				<button class="cta-button">
 					<span>Sponsor This Stream</span>
-					<div class="shine" />
+					<div class="shine"></div>
 				</button>
 			</div>
 		</div>
@@ -82,7 +82,7 @@
 				class:active={i === currentIndex}
 				on:click={() => (currentIndex = i)}
 				aria-label="Go to sponsor {i + 1}"
-			/>
+			></button>
 		{/each}
 	</div>
 </div>

@@ -67,7 +67,7 @@
 				<div class="city-name">{tz.city}</div>
 				<div class="time-display">{currentTimes[tz.city] ? formatTime(currentTimes[tz.city]) : '--:--:--'}</div>
 				<div class="market-status" class:open={isMarketOpen(tz.city)}>
-					<span class="status-dot" />
+					<span class="status-dot"></span>
 					{isMarketOpen(tz.city) ? 'Market Open' : 'Market Closed'}
 				</div>
 			</div>

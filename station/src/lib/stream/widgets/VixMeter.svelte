@@ -77,7 +77,7 @@
 
 	<div class="meter-container">
 		<div class="meter-bg">
-			<div class="meter-fill" style="width: {percentage}%; background: {level.color};" />
+			<div class="meter-fill" style="width: {percentage}%; background: {level.color};"></div>
 		</div>
 		<div class="meter-markers">
 			<span style="left: 30%">15</span>

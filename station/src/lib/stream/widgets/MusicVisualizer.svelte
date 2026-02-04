@@ -29,7 +29,7 @@
 					   background: linear-gradient(to top, 
 						   hsl({(i / barCount) * 60 + 10}, 100%, 50%),
 						   hsl({(i / barCount) * 60 + 40}, 100%, 60%));"
-			/>
+			></div>
 		{/each}
 	</div>
 </div>

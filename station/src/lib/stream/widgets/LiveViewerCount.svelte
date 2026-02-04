@@ -47,7 +47,7 @@
 			/>
 			<circle cx="12" cy="12.5" r="3.5" stroke="currentColor" stroke-width="2" />
 		</svg>
-		<div class="pulse-ring" />
+		<div class="pulse-ring"></div>
 	</div>
 
 	<div class="count-display">
@@ -56,7 +56,7 @@
 	</div>
 
 	<div class="live-indicator">
-		<span class="dot" />
+		<span class="dot"></span>
 		LIVE
 	</div>
 </div>
