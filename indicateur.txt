@@ -70,6 +70,7 @@ group_structure = "📈 STRUCTURE"
 pivot_length = input.int(20, "Pivot Length", group=group_structure, minval=1, maxval=200)
 show_structure_labels = input.bool(false, "Afficher HH/HL/LH/LL", group=group_structure)
 require_structure = input.bool(false, "Structure OBLIGATOIRE", group=group_structure)
+require_vwap_confluence = input.bool(true, "🌊 VWAP Confluence OBLIGATOIRE", group=group_structure)
 
 // ═══════════════════════════════════════════════════════════════════
 // 🎯 ICT SMART MONEY
@@ -117,6 +118,7 @@ group_hist = "📏 HISTORIQUE TP/SL"
 max_trades_history = input.int(50, "Max trades historisés", group=group_hist, minval=1, maxval=100)
 line_extend_bars = input.int(5, "📏 Extension lignes (bars)", group=group_hist, minval=5, maxval=500)
 show_tp_sl_lines = input.bool(true, "Afficher lignes TP/SL", group=group_hist)
+show_only_last_trade_lines = input.bool(true, "📏 Lignes SEULEMENT dernier trade", group=group_hist)
 show_tp_only_when_hit = input.bool(true, "TP lines seulement quand atteints", group=group_hist)
 show_hit_labels = input.bool(true, "🔥 Afficher labels TP/SL touchés", group=group_hist)
 
@@ -288,6 +290,12 @@ utbot_resistance = utbot_highest - utbot_atr * utbot_atr_mult
 utbot_support = utbot_lowest + utbot_atr * utbot_atr_mult
 utbot_mid = (utbot_resistance + utbot_support) / 2
 utbot_bull_signal = price_close > utbot_mid
+
+// ⚠️ Pre-calculate function calls to avoid warnings in conditional blocks
+swing_low_fallback = ta.lowest(price_low, swing_lookback)
+swing_high_fallback = ta.highest(price_high, swing_lookback)
+stoch_crossover = ta.crossover(stoch_k_value, stoch_d_value)
+stoch_crossunder = ta.crossunder(stoch_k_value, stoch_d_value)
 utbot_bear_signal = price_close < utbot_mid
 
 avg_volume = ta.sma(volume, 20)
@@ -357,18 +365,16 @@ float optimal_stop_loss_bear = na
 
 if sl_method == "Swing Pivot"
     // Utilise le dernier swing pivot détecté - buffer
-    optimal_stop_loss_bull := na(last_swing_low_price) ? ta.lowest(price_low, swing_lookback) - buffer_ticks : last_swing_low_price - buffer_ticks
-    optimal_stop_loss_bear := na(last_swing_high_price) ? ta.highest(price_high, swing_lookback) + buffer_ticks : last_swing_high_price + buffer_ticks
+    optimal_stop_loss_bull := na(last_swing_low_price) ? swing_low_fallback - buffer_ticks : last_swing_low_price - buffer_ticks
+    optimal_stop_loss_bear := na(last_swing_high_price) ? swing_high_fallback + buffer_ticks : last_swing_high_price + buffer_ticks
 else if sl_method == "ATR"
     // ATR stop loss
     optimal_stop_loss_bull := price_close - (atr_value * atr_multiplier)
     optimal_stop_loss_bear := price_close + (atr_value * atr_multiplier)
 else
     // Lowest/Highest (méthode originale)
-    swing_low_precise = ta.lowest(price_low, swing_lookback)
-    swing_high_precise = ta.highest(price_high, swing_lookback)
-    optimal_stop_loss_bull := swing_low_precise - buffer_ticks
-    optimal_stop_loss_bear := swing_high_precise + buffer_ticks
+    optimal_stop_loss_bull := swing_low_fallback - buffer_ticks
+    optimal_stop_loss_bear := swing_high_fallback + buffer_ticks
 
 // ═══════════════════════════════════════════════════════════════════
 // 🔥 SCORING
@@ -383,7 +389,7 @@ calc_buy_score() =>
         score += weight_stoch_utbot
     if macd_line > signal_line
         score += weight_macd
-    if ta.crossover(stoch_k_value, stoch_d_value)
+    if stoch_crossover
         score += weight_stoch_confirm
     if rsi_value > 50
         score += weight_rsi
@@ -409,7 +415,7 @@ calc_sell_score() =>
         score += weight_stoch_utbot
     if macd_line < signal_line
         score += weight_macd
-    if ta.crossunder(stoch_k_value, stoch_d_value)
+    if stoch_crossunder
         score += weight_stoch_confirm
     if rsi_value < 50
         score += weight_rsi
@@ -430,6 +436,12 @@ sell_score_100 = int(math.min(math.round(100.0 * calc_sell_score() / total_weigh
 
 vol_abs_ok = (not use_min_abs_volume) or (volume >= min_abs_volume)
 
+// 🌊 VWAP CONFLUENCE FILTER
+vwap_bullish = price_close > vwap_value
+vwap_bearish = price_close < vwap_value
+vwap_filter_buy = (not require_vwap_confluence) or vwap_bullish
+vwap_filter_sell = (not require_vwap_confluence) or vwap_bearish
+
 // 🎯 DIRECTION FILTER
 allow_long = trade_direction == "Both" or trade_direction == "Long Only"
 allow_short = trade_direction == "Both" or trade_direction == "Short Only"
@@ -438,8 +450,8 @@ allow_short = trade_direction == "Both" or trade_direction == "Short Only"
 swing_filter_buy = (not one_signal_per_swing) or allow_buy_signal
 swing_filter_sell = (not one_signal_per_swing) or allow_sell_signal
 
-buy_conditions = (buy_score_100 >= min_confluence_score) and vol_abs_ok and allow_long and swing_filter_buy
-sell_conditions = (sell_score_100 >= min_confluence_score) and vol_abs_ok and allow_short and swing_filter_sell
+buy_conditions = (buy_score_100 >= min_confluence_score) and vol_abs_ok and allow_long and swing_filter_buy and vwap_filter_buy
+sell_conditions = (sell_score_100 >= min_confluence_score) and vol_abs_ok and allow_short and swing_filter_sell and vwap_filter_sell
 
 // ═══════════════════════════════════════════════════════════════════
 // 🧊 COOLDOWN
@@ -524,6 +536,26 @@ f_delete_trade_visuals(Trade t) =>
     if not na(t.labHitTP4)
         label.delete(t.labHitTP4)
 
+f_hide_old_trade_lines() =>
+    if show_only_last_trade_lines and array.size(trades) > 0
+        for i = 0 to array.size(trades) - 1
+            Trade t = array.get(trades, i)
+            if not na(t.lTP1)
+                line.delete(t.lTP1)
+                t.lTP1 := na
+            if not na(t.lTP2)
+                line.delete(t.lTP2)
+                t.lTP2 := na
+            if not na(t.lTP3)
+                line.delete(t.lTP3)
+                t.lTP3 := na
+            if not na(t.lTP4)
+                line.delete(t.lTP4)
+                t.lTP4 := na
+            if not na(t.lSL)
+                line.delete(t.lSL)
+                t.lSL := na
+
 f_push_trade(Trade t) =>
     array.push(trades, t)
     while array.size(trades) > max_trades_history
@@ -607,6 +639,7 @@ f_new_trade(bool _isLong, float _entry, float _sl, float _score100, bool _is_lat
         f_push_trade(t)
 
 if fireBuySignal
+    f_hide_old_trade_lines()
     if close_opposite_signals
         f_close_all_shorts()
     
@@ -616,6 +649,7 @@ if fireBuySignal
         last_buy_bar := bar_index
 
 if fireSellSignal
+    f_hide_old_trade_lines()
     if close_opposite_signals
         f_close_all_longs()
     
@@ -951,6 +985,12 @@ if show_dashboard and barstate.islast and not na(dash)
     table.cell(dash, 3, r, str.tostring(int(weight_vwap)), text_color=color.silver, text_size=size.tiny)
     r += 1
     
+    table.cell(dash, 0, r, "🌊 VWAP Conf", text_color=color.white)
+    table.cell(dash, 1, r, f_txt(vwap_filter_buy), text_color=color.white)
+    table.cell(dash, 2, r, f_txt(vwap_filter_sell), text_color=color.white)
+    table.cell(dash, 3, r, require_vwap_confluence ? "ON" : "OFF", text_color=color.silver, text_size=size.tiny)
+    r += 1
+    
     table.cell(dash, 0, r, "📈 TREND+DMI", text_color=color.white)
     table.cell(dash, 1, r, f_txt(ema9 > ema20 and di_plus > di_minus), text_color=color.white)
     table.cell(dash, 2, r, f_txt(ema9 < ema20 and di_minus > di_plus), text_color=color.white)
@@ -970,8 +1010,8 @@ if show_dashboard and barstate.islast and not na(dash)
     r += 1
     
     table.cell(dash, 0, r, "⚡ Stoch Conf", text_color=color.white)
-    table.cell(dash, 1, r, f_txt(ta.crossover(stoch_k_value, stoch_d_value)), text_color=color.white)
-    table.cell(dash, 2, r, f_txt(ta.crossunder(stoch_k_value, stoch_d_value)), text_color=color.white)
+    table.cell(dash, 1, r, f_txt(stoch_crossover), text_color=color.white)
+    table.cell(dash, 2, r, f_txt(stoch_crossunder), text_color=color.white)
     table.cell(dash, 3, r, str.tostring(int(weight_stoch_confirm)), text_color=color.silver, text_size=size.tiny)
     r += 1
     
@@ -1047,3 +1087,10 @@ if show_dashboard and barstate.islast and not na(dash)
     
     int total_trades = active_longs + active_shorts
     table.cell(dash, 3, r, str.tostring(total_trades), text_color=color.white, bgcolor=color.new(color.purple, 50), text_size=size.small)
+
+// ═══════════════════════════════════════════════════════════════════
+// 🔔 ALERTCONDITIONS FOR WATCHLIST
+// ═══════════════════════════════════════════════════════════════════
+alertcondition(fireBuySignal, title="🟢 Buy Long", message="BaconAlgo: Signal BUY Long détecté!")
+alertcondition(fireSellSignal, title="🔴 Sell Short", message="BaconAlgo: Signal SELL Short détecté!")
+alertcondition(fireBuySignal or fireSellSignal, title="🔔 Both (Any Signal)", message="BaconAlgo: Signal détecté!")
