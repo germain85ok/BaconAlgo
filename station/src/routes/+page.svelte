@@ -248,9 +248,9 @@
 		transition: opacity 0.8s ease, transform 0.8s ease;
 	}
 	
-	.fade-in-visible {
-		opacity: 1;
-		transform: translateY(0);
+	:global(.fade-in-visible) {
+		opacity: 1 !important;
+		transform: translateY(0) !important;
 	}
 	
 	.container {
