@@ -64,7 +64,7 @@
 		try {
 			const payload = {
 				ticker: formData.symbol.toUpperCase(),
-				direction: formData.direction === 'LONG' ? 'BUY' : 'SELL',
+				direction: formData.direction === 'LONG' ? 'BUY' : 'SELL' as 'BUY' | 'SELL',
 				grade: formData.grade,
 				score: formData.score,
 				indicators: {
@@ -76,7 +76,8 @@
 					take_profit_3: formData.tp3 || null,
 					smc_tags: formData.smc_tags,
 					notes: formData.notes,
-					manual_push: true
+					manual_push: true,
+					display_direction: formData.direction
 				}
 			};
 

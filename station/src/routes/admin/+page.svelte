@@ -7,6 +7,13 @@
 
 	const supabase = getSupabaseClient();
 
+	const PLAN_PRICES = {
+		station: 99,
+		scanner: 49,
+		indicator: 29,
+		free: 0
+	} as const;
+
 	let stats = $state({
 		totalUsers: 0,
 		activeSubscriptions: 0,
@@ -47,10 +54,7 @@
 			// Mock MRR calculation (in real app, use subscription table)
 			stats.mrr =
 				(activeUsers?.reduce((sum, u) => {
-					if (u.plan === 'station') return sum + 99;
-					if (u.plan === 'scanner') return sum + 49;
-					if (u.plan === 'indicator') return sum + 29;
-					return sum;
+					return sum + (PLAN_PRICES[u.plan as keyof typeof PLAN_PRICES] || 0);
 				}, 0) || 0);
 
 			// Recent users

@@ -28,7 +28,6 @@
 
 			if (error) throw error;
 			users = data || [];
-			applyFilters();
 			loading = false;
 		} catch (error) {
 			console.error('Failed to load users:', error);
@@ -36,7 +35,7 @@
 		}
 	}
 
-	function applyFilters() {
+	$effect(() => {
 		let result = users;
 
 		// Search filter
@@ -70,10 +69,6 @@
 
 		filteredUsers = result;
 		currentPage = 1;
-	}
-
-	$effect(() => {
-		applyFilters();
 	});
 
 	const paginatedUsers = $derived.by(() => {
