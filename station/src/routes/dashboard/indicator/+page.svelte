@@ -181,7 +181,7 @@
 				</svg>
 				Download Indicator (.pine)
 			</a>
-			<a href="#" class="docs-link">📖 Setup Guide</a>
+			<a href="/academy" class="docs-link">📖 Setup Guide</a>
 		</div>
 	</div>
 
