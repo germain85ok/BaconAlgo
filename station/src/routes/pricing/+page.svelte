@@ -3,6 +3,7 @@
 	import Footer from '$lib/components/ui/Footer.svelte';
 	import GlassCard from '$lib/components/ui/GlassCard.svelte';
 	import { validateCoupon, calculatePriceWithDiscount, PRICING, type CouponValidationResult } from '$lib/services/subscriptions';
+	import { t, locale } from '$lib/i18n/i18n';
 
 	let billingPeriod = $state<'monthly' | 'yearly'>('monthly');
 	let promoCode = $state('');
@@ -11,7 +12,103 @@
 	let couponMessage = $state<string>('');
 	let isValidatingCoupon = $state(false);
 
-	const faqs = [
+	// PayPal button IDs for each tier
+	const PAYPAL_BUTTONS = {
+		FREE: 'KWVC5YDHC6QNU',
+		INDICATEUR: 'YGZZHDVETM3AL',
+		SCANNER: '5VM6UAHY34BZS',
+		STATION: 'D8XKK24KV74GC'
+	};
+
+	// Tier features from specification
+	let tierFeatures = $derived({
+		FREE: [
+			$locale === 'fr' ? '3 signaux gratuits par jour' : '3 free signals per day',
+			$locale === 'fr' ? 'Accès au dashboard de base' : 'Basic dashboard access',
+			$locale === 'fr' ? 'Communauté Discord' : 'Discord community'
+		],
+		INDICATEUR: [
+			$locale === 'fr' ? 'Indicateur BaconAlgo sur TradingView' : 'BaconAlgo indicator on TradingView',
+			$locale === 'fr' ? 'Alertes watchlist' : 'Watchlist alerts',
+			$locale === 'fr' ? 'Signaux illimités' : 'Unlimited signals',
+			'Support email'
+		],
+		SCANNER: [
+			$locale === 'fr' ? "Tout de l'Indicateur +" : 'Everything from Indicator +',
+			$locale === 'fr' ? 'Scanner temps réel (10K+ instruments)' : 'Real-time scanner (10K+ instruments)',
+			$locale === 'fr' ? 'Filtres V1-V5' : 'V1-V5 filters',
+			$locale === 'fr' ? 'Score de confluence' : 'Confluence scoring',
+			$locale === 'fr' ? 'Support prioritaire' : 'Priority support'
+		],
+		STATION: [
+			$locale === 'fr' ? 'Tout du Scanner +' : 'Everything from Scanner +',
+			$locale === 'fr' ? 'Auto-exécution' : 'Auto-execution',
+			$locale === 'fr' ? 'Connexion broker (IBKR, Bitget)' : 'Broker connection (IBKR, Bitget)',
+			$locale === 'fr' ? 'Overlay streaming' : 'Stream overlay',
+			$locale === 'fr' ? 'Backtesting illimité' : 'Unlimited backtesting',
+			$locale === 'fr' ? 'Accès API' : 'API access',
+			$locale === 'fr' ? 'Support VIP' : 'VIP support'
+		]
+	});
+
+	let tiers = $derived([
+		{
+			name: 'FREE',
+			displayName: $locale === 'fr' ? 'Gratuit (Donation)' : 'Free (Donation)',
+			price: { monthly: 0, yearly: 0 },
+			popular: false,
+			features: tierFeatures.FREE,
+			paypalButtonId: PAYPAL_BUTTONS.FREE
+		},
+		{
+			name: 'INDICATEUR',
+			displayName: $locale === 'fr' ? 'Indicateur' : 'Indicator',
+			price: { monthly: 20, yearly: 192 }, // 20% discount: 20 * 12 * 0.8 = 192
+			popular: false,
+			features: tierFeatures.INDICATEUR,
+			paypalButtonId: PAYPAL_BUTTONS.INDICATEUR
+		},
+		{
+			name: 'SCANNER',
+			displayName: 'Scanner',
+			price: { monthly: 30, yearly: 288 }, // 20% discount: 30 * 12 * 0.8 = 288
+			popular: true,
+			features: tierFeatures.SCANNER,
+			paypalButtonId: PAYPAL_BUTTONS.SCANNER
+		},
+		{
+			name: 'STATION',
+			displayName: 'Station',
+			price: { monthly: 50, yearly: 480 }, // 20% discount: 50 * 12 * 0.8 = 480
+			popular: false,
+			features: tierFeatures.STATION,
+			paypalButtonId: PAYPAL_BUTTONS.STATION
+		}
+	]);
+
+	// FAQ questions translated
+	let faqs = $derived($locale === 'fr' ? [
+		{
+			question: 'Puis-je annuler mon abonnement à tout moment ?',
+			answer: 'Oui ! Vous pouvez annuler votre abonnement à tout moment depuis les paramètres de votre compte. Sans questions.'
+		},
+		{
+			question: 'Quels modes de paiement acceptez-vous ?',
+			answer: 'Nous acceptons PayPal, cartes de crédit/débit via Stripe, et cryptomonnaies (BTC, ETH, USDT).'
+		},
+		{
+			question: 'Y a-t-il un essai gratuit ?',
+			answer: 'Oui ! Tous les nouveaux utilisateurs obtiennent un essai gratuit de 7 jours sur tout plan payant. Aucune carte de crédit requise.'
+		},
+		{
+			question: 'Puis-je améliorer ou réduire mon plan ?',
+			answer: 'Absolument ! Vous pouvez changer votre plan à tout moment. Les améliorations sont immédiates, les réductions prennent effet au prochain cycle de facturation.'
+		},
+		{
+			question: 'Offrez-vous des remboursements ?',
+			answer: 'Nous offrons une garantie de remboursement de 14 jours. Si vous n\'êtes pas satisfait, contactez-nous pour un remboursement complet.'
+		}
+	] : [
 		{
 			question: 'Can I cancel my subscription at any time?',
 			answer: 'Yes! You can cancel your subscription at any time from your account settings. No questions asked.'
@@ -32,77 +129,18 @@
 			question: 'Do you offer refunds?',
 			answer: 'We offer a 14-day money-back guarantee. If you\'re not satisfied, contact us for a full refund.'
 		}
-	];
-
-	const tiers = [
-		{
-			name: 'FREE',
-			price: { monthly: 0, yearly: 0 },
-			popular: false,
-			features: [
-				'YouTube Live access',
-				'Basic dashboard',
-				'Community Discord access',
-				'Weekly market reports',
-				'Limited signal history'
-			]
-		},
-		{
-			name: 'INDICATEUR',
-			price: { monthly: 20, yearly: 192 }, // 20% discount: 20 * 12 * 0.8 = 192
-			popular: false,
-			features: [
-				'TradingView indicators',
-				'Basic signals',
-				'Discord alerts',
-				'Real-time data',
-				'Email support',
-				'No ads'
-			]
-		},
-		{
-			name: 'SCANNER',
-			price: { monthly: 30, yearly: 288 }, // 20% discount: 30 * 12 * 0.8 = 288
-			popular: true,
-			features: [
-				'Stock scanner',
-				'Advanced filters',
-				'Custom alerts',
-				'Watchlists',
-				'All indicators',
-				'Priority support',
-				'API access (limited)',
-				'No ads'
-			]
-		},
-		{
-			name: 'STATION',
-			price: { monthly: 50, yearly: 480 }, // 20% discount: 50 * 12 * 0.8 = 480
-			popular: false,
-			features: [
-				'Full trading station',
-				'Auto-trade functionality',
-				'All broker integrations',
-				'Portfolio management',
-				'Full API access',
-				'Unlimited everything',
-				'Priority support',
-				'Early access features',
-				'White-label options'
-			]
-		}
-	];
+	]);
 
 	function getPrice(tier: typeof tiers[0]) {
 		const price = billingPeriod === 'yearly' ? tier.price.yearly : tier.price.monthly;
 		if (billingPeriod === 'yearly') {
-			return `$${Math.floor(price / 12)}/mo`;
+			return `$${Math.floor(price / 12)} CAD${$t.pricing.perMonth}`;
 		}
-		return `$${price}/mo`;
+		return `$${price} CAD${$t.pricing.perMonth}`;
 	}
 
 	function getYearlyPrice(tier: typeof tiers[0]) {
-		return `$${tier.price.yearly}/yr`;
+		return `$${tier.price.yearly} CAD${$t.pricing.perYear}`;
 	}
 
 	function toggleFaq(index: number) {
@@ -111,7 +149,7 @@
 
 	async function applyPromoCode() {
 		if (!promoCode.trim()) {
-			couponMessage = 'Please enter a promo code';
+			couponMessage = $t.pricing.enterPromo;
 			couponValidation = null;
 			return;
 		}
@@ -126,12 +164,12 @@
 			couponValidation = result;
 			
 			if (result.valid) {
-				couponMessage = `✓ Valid! ${result.discount_percent ? result.discount_percent + '% off' : '$' + result.discount_amount + ' off'}`;
+				couponMessage = `✓ ${$locale === 'fr' ? 'Valide! ' : 'Valid! '}${result.discount_percent ? result.discount_percent + '% off' : '$' + result.discount_amount + ' off'}`;
 			} else {
 				couponMessage = result.message;
 			}
 		} catch (err) {
-			couponMessage = 'Error validating coupon';
+			couponMessage = $locale === 'fr' ? 'Erreur de validation du code' : 'Error validating coupon';
 			couponValidation = null;
 		} finally {
 			isValidatingCoupon = false;
@@ -150,39 +188,27 @@
 			
 			if (billingPeriod === 'yearly') {
 				return {
-					display: `$${(discountedPrice / 12).toFixed(2)}/mo`,
-					original: `$${(basePrice / 12).toFixed(2)}/mo`,
+					display: `$${(discountedPrice / 12).toFixed(0)} CAD${$t.pricing.perMonth}`,
+					original: `$${(basePrice / 12).toFixed(0)} CAD${$t.pricing.perMonth}`,
 					savings: basePrice - discountedPrice
 				};
 			}
 			return {
-				display: `$${discountedPrice.toFixed(2)}/mo`,
-				original: `$${basePrice.toFixed(2)}/mo`,
+				display: `$${discountedPrice.toFixed(0)} CAD${$t.pricing.perMonth}`,
+				original: `$${basePrice.toFixed(0)} CAD${$t.pricing.perMonth}`,
 				savings: basePrice - discountedPrice
 			};
 		}
 		
 		if (billingPeriod === 'yearly') {
 			return {
-				display: `$${(basePrice / 12).toFixed(2)}/mo`,
+				display: `$${Math.floor(basePrice / 12)} CAD${$t.pricing.perMonth}`,
 				original: null,
 				savings: 0
 			};
 		}
 		return {
-			display: `$${basePrice.toFixed(2)}/mo`,
-			original: null,
-			savings: 0
-		};
-	}
-			return {
-				display: `$${Math.floor(basePrice / 12)}/mo`,
-				original: null,
-				savings: 0
-			};
-		}
-		return {
-			display: `$${basePrice}/mo`,
+			display: `$${basePrice} CAD${$t.pricing.perMonth}`,
 			original: null,
 			savings: 0
 		};
@@ -202,10 +228,10 @@
 			<!-- Header -->
 			<div class="text-center mb-12">
 				<h1 class="text-4xl md:text-5xl font-display font-bold mb-4 bg-gradient-to-r from-bacon-orange to-bacon-red bg-clip-text text-transparent">
-					Choose Your Plan
+					{$t.pricing.title}
 				</h1>
 				<p class="text-text-secondary text-lg max-w-2xl mx-auto">
-					Start free, upgrade when ready. All plans include 7-day free trial.
+					{$t.pricing.subtitle}
 				</p>
 			</div>
 
@@ -216,14 +242,14 @@
 						onclick={() => billingPeriod = 'monthly'}
 						class="px-6 py-2 rounded-full font-semibold transition-all {billingPeriod === 'monthly' ? 'bg-gradient-to-r from-bacon-orange to-bacon-red text-white' : 'text-text-secondary'}"
 					>
-						Monthly
+						{$t.pricing.monthly}
 					</button>
 					<button
 						onclick={() => billingPeriod = 'yearly'}
 						class="px-6 py-2 rounded-full font-semibold transition-all {billingPeriod === 'yearly' ? 'bg-gradient-to-r from-bacon-orange to-bacon-red text-white' : 'text-text-secondary'}"
 					>
-						Yearly
-						<span class="ml-2 text-xs bg-green-500 text-white px-2 py-1 rounded-full">Save 20%</span>
+						{$t.pricing.yearly}
+						<span class="ml-2 text-xs bg-green-500 text-white px-2 py-1 rounded-full">{$t.pricing.save}</span>
 					</button>
 				</div>
 			</div>
@@ -237,12 +263,12 @@
 					>
 						{#if tier.popular}
 							<div class="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-bacon-orange to-bacon-red text-white px-4 py-1 rounded-full text-sm font-bold">
-								Most Popular
+								{$t.pricing.mostPopular}
 							</div>
 						{/if}
 
 						<div class="text-center mb-6">
-							<h3 class="text-2xl font-display font-bold text-text-primary mb-2">{tier.name}</h3>
+							<h3 class="text-2xl font-display font-bold text-text-primary mb-2">{tier.displayName}</h3>
 							<div class="mb-2">
 								{#if getPriceWithCoupon(tier).original}
 									<div class="text-sm text-text-secondary line-through mb-1">
@@ -261,7 +287,7 @@
 								{/if}
 							</div>
 							{#if billingPeriod === 'yearly' && tier.price.yearly > 0}
-								<p class="text-text-secondary text-sm">{getYearlyPrice(tier)} billed annually</p>
+								<p class="text-text-secondary text-sm">{getYearlyPrice(tier)} {$t.pricing.billedAnnually}</p>
 							{/if}
 						</div>
 
@@ -276,14 +302,32 @@
 							{/each}
 						</ul>
 
-						<a
-							href="/register"
-							class="w-full py-3 rounded-lg font-semibold text-center transition-all {tier.popular 
-								? 'bg-gradient-to-r from-bacon-orange to-bacon-red text-white hover:shadow-lg hover:shadow-bacon-orange/30' 
-								: 'bg-white/10 text-text-primary hover:bg-white/20'}"
-						>
-							Get Started
-						</a>
+						{#if tier.name === 'FREE'}
+							<!-- PayPal Donation Button for FREE tier -->
+							<form action="https://www.paypal.com/donate" method="post" target="_blank" class="w-full">
+								<input type="hidden" name="hosted_button_id" value="{tier.paypalButtonId}" />
+								<button
+									type="submit"
+									class="w-full py-3 rounded-lg font-semibold text-center transition-all bg-white/10 text-text-primary hover:bg-white/20"
+								>
+									{$t.pricing.donation}
+								</button>
+							</form>
+						{:else}
+							<!-- PayPal Subscribe Button for paid tiers -->
+							<form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_blank" class="w-full">
+								<input type="hidden" name="cmd" value="_s-xclick" />
+								<input type="hidden" name="hosted_button_id" value="{tier.paypalButtonId}" />
+								<button
+									type="submit"
+									class="w-full py-3 rounded-lg font-semibold text-center transition-all {tier.popular 
+										? 'bg-gradient-to-r from-bacon-orange to-bacon-red text-white hover:shadow-lg hover:shadow-bacon-orange/30' 
+										: 'bg-white/10 text-text-primary hover:bg-white/20'}"
+								>
+									{$t.pricing.subscribe}
+								</button>
+							</form>
+						{/if}
 					</GlassCard>
 				{/each}
 			</div>
@@ -295,7 +339,7 @@
 						<input
 							type="text"
 							bind:value={promoCode}
-							placeholder="Enter promo code"
+							placeholder="{$t.pricing.enterPromo}"
 							class="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-text-secondary focus:outline-none focus:ring-2 focus:ring-bacon-orange/50"
 						/>
 						<button
@@ -303,7 +347,7 @@
 							disabled={isValidatingCoupon}
 							class="px-6 py-3 bg-gradient-to-r from-bacon-orange to-bacon-red text-white rounded-lg font-semibold hover:shadow-lg hover:shadow-bacon-orange/30 transition-all disabled:opacity-50"
 						>
-							{isValidatingCoupon ? 'Checking...' : 'Apply'}
+							{isValidatingCoupon ? $t.pricing.checking : $t.pricing.apply}
 						</button>
 					</div>
 					{#if couponMessage}
@@ -316,7 +360,7 @@
 
 			<!-- Payment Methods -->
 			<div class="text-center mb-12">
-				<p class="text-text-secondary mb-4">Accepted Payment Methods</p>
+				<p class="text-text-secondary mb-4">{$t.pricing.paymentMethods}</p>
 				<div class="flex items-center justify-center gap-6 flex-wrap">
 					<div class="glass px-6 py-3 rounded-lg">
 						<span class="text-text-primary font-semibold">💳 PayPal</span>
@@ -333,7 +377,7 @@
 			<!-- FAQ -->
 			<div class="max-w-3xl mx-auto">
 				<h2 class="text-3xl font-display font-bold text-center mb-8 bg-gradient-to-r from-bacon-orange to-bacon-red bg-clip-text text-transparent">
-					Frequently Asked Questions
+					{$t.pricing.faq}
 				</h2>
 				<div class="space-y-4">
 					{#each faqs as faq, i}

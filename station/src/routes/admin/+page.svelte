@@ -2,16 +2,18 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { getSupabaseClient } from '$lib/supabase/client';
 	import { Chart, registerables } from 'chart.js';
+	import { t, locale } from '$lib/i18n/i18n';
 
 	Chart.register(...registerables);
 
 	const supabase = getSupabaseClient();
 
+	// Correct tier prices in CAD
 	const PLAN_PRICES = {
-		station: 99,
-		scanner: 49,
-		indicator: 29,
-		free: 0
+		STATION: 50,
+		SCANNER: 30,
+		INDICATEUR: 20,
+		FREE: 0
 	} as const;
 
 	let stats = $state({
@@ -47,14 +49,18 @@
 			stats.totalUsers = users?.length || 0;
 
 			const activeUsers = users?.filter(
-				(u) => u.plan !== 'free' && (!u.plan_expires_at || new Date(u.plan_expires_at) > new Date())
+				(u) => {
+					const planUpper = (u.plan || '').toUpperCase();
+					return planUpper !== 'FREE' && (!u.plan_expires_at || new Date(u.plan_expires_at) > new Date());
+				}
 			);
 			stats.activeSubscriptions = activeUsers?.length || 0;
 
-			// Mock MRR calculation (in real app, use subscription table)
+			// MRR calculation with correct tier names
 			stats.mrr =
 				(activeUsers?.reduce((sum, u) => {
-					return sum + (PLAN_PRICES[u.plan as keyof typeof PLAN_PRICES] || 0);
+					const planUpper = (u.plan || '').toUpperCase();
+					return sum + (PLAN_PRICES[planUpper as keyof typeof PLAN_PRICES] || 0);
 				}, 0) || 0);
 
 			// Recent users
@@ -146,37 +152,60 @@
 	}
 
 	function formatCurrency(amount: number): string {
-		return `$${amount.toLocaleString()}`;
+		return `$${amount.toLocaleString()} CAD`;
 	}
 
 	function formatDate(dateStr: string): string {
-		return new Date(dateStr).toLocaleDateString();
+		return new Date(dateStr).toLocaleDateString($locale === 'fr' ? 'fr-CA' : 'en-CA');
 	}
 
 	function getPlanBadgeClass(plan: string): string {
-		switch (plan) {
-			case 'station':
+		const planUpper = (plan || '').toUpperCase();
+		switch (planUpper) {
+			case 'STATION':
 				return 'badge-station';
-			case 'scanner':
+			case 'SCANNER':
 				return 'badge-scanner';
-			case 'indicator':
+			case 'INDICATEUR':
+			case 'INDICATOR':
 				return 'badge-indicator';
 			default:
 				return 'badge-free';
+		}
+	}
+
+	function getPlanDisplayName(plan: string): string {
+		const planUpper = (plan || '').toUpperCase();
+		if ($locale === 'fr') {
+			switch (planUpper) {
+				case 'STATION': return 'Station';
+				case 'SCANNER': return 'Scanner';
+				case 'INDICATEUR':
+				case 'INDICATOR': return 'Indicateur';
+				default: return 'Gratuit';
+			}
+		} else {
+			switch (planUpper) {
+				case 'STATION': return 'Station';
+				case 'SCANNER': return 'Scanner';
+				case 'INDICATEUR':
+				case 'INDICATOR': return 'Indicator';
+				default: return 'Free';
+			}
 		}
 	}
 </script>
 
 <div class="dashboard">
 	{#if loading}
-		<div class="loading">Loading dashboard...</div>
+		<div class="loading">{$t.common.loading}</div>
 	{:else}
 		<!-- Stats Cards -->
 		<div class="stats-grid">
 			<div class="stat-card">
 				<div class="stat-icon">👥</div>
 				<div class="stat-content">
-					<div class="stat-label">Total Users</div>
+					<div class="stat-label">{$t.admin.totalUsers}</div>
 					<div class="stat-value">{stats.totalUsers}</div>
 				</div>
 			</div>
@@ -184,7 +213,7 @@
 			<div class="stat-card">
 				<div class="stat-icon">✅</div>
 				<div class="stat-content">
-					<div class="stat-label">Active Subscriptions</div>
+					<div class="stat-label">{$t.admin.activeSubscriptions}</div>
 					<div class="stat-value">{stats.activeSubscriptions}</div>
 				</div>
 			</div>
@@ -192,7 +221,7 @@
 			<div class="stat-card">
 				<div class="stat-icon">💰</div>
 				<div class="stat-content">
-					<div class="stat-label">MRR</div>
+					<div class="stat-label">{$t.admin.mrr}</div>
 					<div class="stat-value">{formatCurrency(stats.mrr)}</div>
 				</div>
 			</div>
@@ -200,7 +229,7 @@
 			<div class="stat-card">
 				<div class="stat-icon">📉</div>
 				<div class="stat-content">
-					<div class="stat-label">Churn Rate</div>
+					<div class="stat-label">{$t.admin.churnRate}</div>
 					<div class="stat-value">{stats.churnRate.toFixed(1)}%</div>
 				</div>
 			</div>
@@ -208,7 +237,7 @@
 			<div class="stat-card">
 				<div class="stat-icon">🆕</div>
 				<div class="stat-content">
-					<div class="stat-label">Today's Signups</div>
+					<div class="stat-label">{$t.admin.todaySignups}</div>
 					<div class="stat-value">{stats.todaySignups}</div>
 				</div>
 			</div>
@@ -216,7 +245,7 @@
 			<div class="stat-card">
 				<div class="stat-icon">💵</div>
 				<div class="stat-content">
-					<div class="stat-label">Revenue Today</div>
+					<div class="stat-label">{$t.admin.todayRevenue}</div>
 					<div class="stat-value">{formatCurrency(stats.todayRevenue)}</div>
 				</div>
 			</div>
@@ -225,14 +254,14 @@
 		<!-- Charts -->
 		<div class="charts-grid">
 			<div class="chart-card">
-				<h3>Signups (Last 7 Days)</h3>
+				<h3>{$t.admin.signupsChart}</h3>
 				<div class="chart-container">
 					<canvas id="signupsChart"></canvas>
 				</div>
 			</div>
 
 			<div class="chart-card">
-				<h3>Revenue (Last 30 Days)</h3>
+				<h3>{$t.admin.revenueChart}</h3>
 				<div class="chart-container">
 					<canvas id="revenueChart"></canvas>
 				</div>
@@ -242,18 +271,18 @@
 		<!-- Recent Users -->
 		<div class="section-card">
 			<div class="section-header">
-				<h3>Recent Users</h3>
-				<a href="/admin/users" class="view-all">View All →</a>
+				<h3>{$t.admin.recentUsers}</h3>
+				<a href="/admin/users" class="view-all">{$t.admin.viewAll}</a>
 			</div>
 			<div class="table-container">
 				<table>
 					<thead>
 						<tr>
-							<th>Email</th>
-							<th>Username</th>
-							<th>Plan</th>
-							<th>Joined</th>
-							<th>Status</th>
+							<th>{$t.admin.email}</th>
+							<th>{$t.admin.username}</th>
+							<th>{$t.admin.plan}</th>
+							<th>{$t.admin.joined}</th>
+							<th>{$t.admin.status}</th>
 						</tr>
 					</thead>
 					<tbody>
@@ -261,11 +290,11 @@
 							<tr>
 								<td>{user.email}</td>
 								<td>{user.username || '-'}</td>
-								<td><span class="plan-badge {getPlanBadgeClass(user.plan)}">{user.plan}</span></td>
+								<td><span class="plan-badge {getPlanBadgeClass(user.plan)}">{getPlanDisplayName(user.plan)}</span></td>
 								<td>{formatDate(user.created_at)}</td>
 								<td>
 									<span class="status-badge {user.is_banned ? 'status-banned' : 'status-active'}">
-										{user.is_banned ? 'Banned' : 'Active'}
+										{user.is_banned ? $t.admin.banned : $t.admin.active}
 									</span>
 								</td>
 							</tr>
@@ -277,19 +306,19 @@
 
 		<!-- Quick Actions -->
 		<div class="quick-actions">
-			<h3>Quick Actions</h3>
+			<h3>{$t.admin.quickActions}</h3>
 			<div class="actions-grid">
 				<a href="/admin/promos" class="action-btn">
 					<span>🎟️</span>
-					<span>Create Promo</span>
+					<span>{$t.admin.createPromoAction}</span>
 				</a>
 				<a href="/admin/discord" class="action-btn">
 					<span>💬</span>
-					<span>Send Alert</span>
+					<span>{$t.admin.sendAlert}</span>
 				</a>
 				<a href="/admin/signals" class="action-btn">
 					<span>📡</span>
-					<span>Push Signal</span>
+					<span>{$t.admin.pushSignal}</span>
 				</a>
 			</div>
 		</div>

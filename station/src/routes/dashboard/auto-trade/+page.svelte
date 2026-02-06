@@ -39,6 +39,11 @@
 	});
 
 	let symbolBlacklistInput = $state('');
+	let selectedBroker = $state('');
+	let maxPositionSize = $state(1000);
+	let maxDailyLoss = $state(500);
+	let minSignalScore = $state(70);
+	let allowedSymbols = $state('');
 
 	const gradeOptions = ['S', 'A', 'B', 'C'];
 
