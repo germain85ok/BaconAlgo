@@ -1,6 +1,0 @@
-cargo:rerun-if-changed=build.rs
-cargo:rustc-cfg=has_x86_64
-cargo:rustc-cfg=has_avx2
-cargo:rustc-cfg=has_sse42
-cargo:rustc-cfg=has_fma
-cargo:rustc-env=MALLOC_CONF=background_thread:true,metadata_thp:auto,dirty_decay_ms:30000,muzzy_decay_ms:30000

@@ -7,6 +7,8 @@ mod config;
 mod families;
 mod engine;
 mod backtest;
+mod smc;
+mod signal;
 
 use axum::{
     routing::{get, post},
