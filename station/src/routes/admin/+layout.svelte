@@ -32,7 +32,9 @@
 	const adminNavItems = [
 		{ path: '/admin', label: '📊 Dashboard', icon: '📊' },
 		{ path: '/admin/users', label: '👥 Users', icon: '👥' },
-		{ path: '/admin/promos', label: '🎟️ Promo Codes', icon: '🎟️' },
+		{ path: '/admin/coupons', label: '🎟️ Coupons', icon: '🎟️' },
+		{ path: '/admin/subscriptions', label: '💳 Subscriptions', icon: '💳' },
+		{ path: '/admin/promos', label: '🎁 Promo Codes', icon: '🎁' },
 		{ path: '/admin/discord', label: '💬 Discord Alerts', icon: '💬' },
 		{ path: '/admin/signals', label: '📡 Manual Signals', icon: '📡' },
 		{ path: '/admin/analytics', label: '📈 Analytics', icon: '📈' }

@@ -1,33 +1,95 @@
 <script lang="ts">
-	import { userSettingsStore } from '$lib/stores/userSettings';
+	import { onMount } from 'svelte';
+	import { getCurrentUser } from '$lib/services/supabase';
+	import {
+		getAutoTradeSettings,
+		upsertAutoTradeSettings,
+		activateKillSwitch,
+		deactivateKillSwitch,
+		getBrokerConnections,
+		getTradeStats,
+		type AutoTradeSettings,
+		type BrokerConnection
+	} from '$lib/services/autoTrade';
+	import GlassCard from '$lib/components/ui/GlassCard.svelte';
 
-	let autoTradingEnabled = $state(false);
-	let selectedBroker = $state('');
-	let maxPositionSize = $state(10000);
-	let maxDailyLoss = $state(500);
-	let minSignalScore = $state(70);
-	let allowedSymbols = $state('SPY,QQQ,NVDA,TSLA,AAPL');
+	let userId = $state<string | null>(null);
+	let settings = $state<AutoTradeSettings | null>(null);
+	let brokerConnections = $state<BrokerConnection[]>([]);
+	let tradeStats = $state<any>(null);
+	let loading = $state(true);
+	let saving = $state(false);
 
-	function toggleAutoTrading() {
-		autoTradingEnabled = !autoTradingEnabled;
-		userSettingsStore.updateAutoTrading({ enabled: autoTradingEnabled });
-		
-		if (autoTradingEnabled) {
-			alert('✅ Auto-trading enabled! System will execute trades based on signals.');
-		} else {
-			alert('⏸️ Auto-trading disabled.');
+	// Form state
+	let formData = $state({
+		enabled: false,
+		mode: 'paper' as 'paper' | 'semi-auto' | 'full-auto',
+		broker_connection_id: null as string | null,
+		max_daily_loss: 500,
+		max_position_size_percent: 10,
+		max_concurrent_positions: 5,
+		auto_execute_grades: ['S', 'A'] as string[],
+		symbol_blacklist: [] as string[],
+		trading_hours_start: null as string | null,
+		trading_hours_end: null as string | null,
+		discord_webhook_url: null as string | null,
+		telegram_chat_id: null as string | null,
+		email_notifications: true,
+		kill_switch_activated: false
+	});
+
+	let symbolBlacklistInput = $state('');
+
+	const gradeOptions = ['S', 'A', 'B', 'C'];
+
+	onMount(async () => {
+		await loadData();
+	});
+
+	async function loadData() {
+		loading = true;
+		const { user } = await getCurrentUser();
+		if (!user) {
+			loading = false;
+			return;
 		}
-	}
 
-	function saveSettings() {
-		userSettingsStore.updateAutoTrading({
-			broker: selectedBroker,
-			maxPositionSize,
-			maxDailyLoss,
-			minSignalScore,
-			allowedSymbols: allowedSymbols.split(',').map(s => s.trim())
-		});
-		alert('✅ Settings saved!');
+		userId = user.id;
+
+		// Load settings
+		const { data: settingsData } = await getAutoTradeSettings(user.id);
+		if (settingsData) {
+			settings = settingsData;
+			formData = {
+				enabled: settingsData.enabled,
+				mode: settingsData.mode,
+				broker_connection_id: settingsData.broker_connection_id,
+				max_daily_loss: settingsData.max_daily_loss,
+				max_position_size_percent: settingsData.max_position_size_percent,
+				max_concurrent_positions: settingsData.max_concurrent_positions,
+				auto_execute_grades: settingsData.auto_execute_grades || ['S', 'A'],
+				symbol_blacklist: settingsData.symbol_blacklist || [],
+				trading_hours_start: settingsData.trading_hours_start,
+				trading_hours_end: settingsData.trading_hours_end,
+				discord_webhook_url: settingsData.discord_webhook_url,
+				telegram_chat_id: settingsData.telegram_chat_id,
+				email_notifications: settingsData.email_notifications,
+				kill_switch_activated: settingsData.kill_switch_activated
+			};
+			symbolBlacklistInput = settingsData.symbol_blacklist.join(', ');
+		}
+
+		// Load broker connections
+		const { data: brokersData } = await getBrokerConnections(user.id);
+		if (brokersData) {
+			brokerConnections = brokersData;
+		}
+
+		// Load trade stats
+		const stats = await getTradeStats(user.id);
+		tradeStats = stats;
+
+		loading = false;
 	}
 </script>
 
