@@ -1,6 +1,9 @@
 pub mod timeframe;
 pub mod context;
 pub mod engine;
+pub mod quantum_scanner;
+pub mod signal_engine;
+pub mod market_data;
 
 use std::sync::Arc;
 use tokio::sync::broadcast;
