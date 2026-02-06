@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 # Web framework
-axum = "0.7"
+axum = { version = "0.7", features = ["ws"] }
 
 # Async runtime
 tokio = { version = "1", features = ["full"] }
@@ -42,7 +42,7 @@ futures-util = "0.3"
 feed-rs = "1.3"
 
 # Other utilities
-uuid = { version = "1", features = ["v4"] }
+uuid = { version = "1", features = ["v4", "serde"] }
 url = "2"
 async-trait = "0.1"
 
