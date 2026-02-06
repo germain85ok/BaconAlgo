@@ -1,0 +1,210 @@
+version: '3.8'
+
+services:
+  # =============================================================================
+  # 🦀 BACKEND — Rust Axum API
+  # =============================================================================
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: baconalgo-backend
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      - RUST_LOG=info
+      - DATABASE_URL=${DATABASE_URL:-postgresql://baconalgo:changeme@postgres:5432/baconalgo}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379}
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - baconalgo-net
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 4G
+        reservations:
+          cpus: '2'
+          memory: 2G
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # =============================================================================
+  # 🎨 STATION — SvelteKit Node SSR
+  # =============================================================================
+  station:
+    build:
+      context: ./station
+      dockerfile: Dockerfile
+    container_name: baconalgo-station
+    restart: always
+    ports:
+      - "5173:5173"
+    environment:
+      - NODE_ENV=production
+      - PORT=5173
+      - PUBLIC_SUPABASE_URL=${PUBLIC_SUPABASE_URL}
+      - PUBLIC_SUPABASE_ANON_KEY=${PUBLIC_SUPABASE_ANON_KEY}
+      - PUBLIC_BACKEND_URL=${PUBLIC_BACKEND_URL:-https://baconalgo.com/api}
+      - PUBLIC_BRAND_NAME=${PUBLIC_BRAND_NAME:-BaconAlgo}
+      - PUBLIC_BRAND_COLOR=${PUBLIC_BRAND_COLOR:-#FF6B35}
+    env_file:
+      - .env
+    networks:
+      - baconalgo-net
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5173"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # =============================================================================
+  # 🗄️ POSTGRES — PostgreSQL 16
+  # =============================================================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: baconalgo-postgres
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-baconalgo}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme}
+      - POSTGRES_DB=${POSTGRES_DB:-baconalgo}
+      # Performance tuning for 32GB RAM system
+      - POSTGRES_SHARED_BUFFERS=4GB
+      - POSTGRES_EFFECTIVE_CACHE_SIZE=16GB
+      - POSTGRES_WORK_MEM=256MB
+      - POSTGRES_MAINTENANCE_WORK_MEM=1GB
+      - POSTGRES_MAX_CONNECTIONS=200
+      - POSTGRES_CHECKPOINT_COMPLETION_TARGET=0.9
+      - POSTGRES_WAL_BUFFERS=16MB
+      - POSTGRES_DEFAULT_STATISTICS_TARGET=100
+      - POSTGRES_RANDOM_PAGE_COST=1.1
+      - POSTGRES_EFFECTIVE_IO_CONCURRENCY=200
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./supabase/migrations:/docker-entrypoint-initdb.d:ro
+    networks:
+      - baconalgo-net
+    command: >
+      postgres
+      -c shared_buffers=4GB
+      -c effective_cache_size=16GB
+      -c work_mem=256MB
+      -c maintenance_work_mem=1GB
+      -c max_connections=200
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=16MB
+      -c default_statistics_target=100
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
+      -c max_worker_processes=8
+      -c max_parallel_workers_per_gather=4
+      -c max_parallel_workers=8
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U baconalgo"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # =============================================================================
+  # ⚡ REDIS — Redis 7 Alpine
+  # =============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: baconalgo-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    command: >
+      redis-server
+      --maxmemory 2gb
+      --maxmemory-policy allkeys-lru
+      --save 900 1
+      --save 300 10
+      --save 60 10000
+      --appendonly yes
+      --appendfsync everysec
+    volumes:
+      - redis_data:/data
+    networks:
+      - baconalgo-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # =============================================================================
+  # 🌐 CADDY — Reverse Proxy & HTTPS
+  # =============================================================================
+  caddy:
+    image: caddy:2-alpine
+    container_name: baconalgo-caddy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"  # HTTP/3 support
+      - "8443:8443"    # Admin panel
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - backend
+      - station
+    networks:
+      - baconalgo-net
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+# =============================================================================
+# NETWORKS
+# =============================================================================
+networks:
+  baconalgo-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+
+# =============================================================================
+# VOLUMES
+# =============================================================================
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  caddy_data:
+    driver: local
+  caddy_config:
+    driver: local

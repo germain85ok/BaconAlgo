@@ -1,0 +1,55 @@
+{
+    # Global options
+    admin off
+    
+    # Email for ACME/Let's Encrypt
+    email germain85@hotmail.com
+}
+
+# =============================================================================
+# 🥓 Main site — Station frontend
+# =============================================================================
+baconalgo.com, www.baconalgo.com {
+    # Compression
+    encode gzip zstd
+    
+    # API routes → Rust backend
+    handle /api/* {
+        reverse_proxy backend:8080
+    }
+    
+    # WebSocket → Rust backend
+    handle /ws/* {
+        reverse_proxy backend:8080
+    }
+    
+    # SSE → Rust backend
+    handle /sse/* {
+        reverse_proxy backend:8080
+    }
+    
+    # Everything else → SvelteKit Station
+    handle {
+        reverse_proxy station:5173
+    }
+    
+    # Security headers
+    header {
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        Referrer-Policy strict-origin-when-cross-origin
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    }
+    
+    # Cache static assets
+    @static path *.js *.css *.png *.jpg *.svg *.woff2 *.ico
+    header @static Cache-Control "public, max-age=31536000, immutable"
+}
+
+# =============================================================================
+# 🔧 Admin — only accessible via Tailscale or local
+# =============================================================================
+:8443 {
+    reverse_proxy station:5173
+    # Admin routes handled by SvelteKit route guards
+}
