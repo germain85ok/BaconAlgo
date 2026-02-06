@@ -59,7 +59,7 @@ WS   /ws/signals                    # WebSocket signaux
 **Fonctionnalités:**
 - ✅ 4 tiers d'abonnement (FREE, STATION, PRO, INSTITUTIONAL)
 - ✅ 3 codes promo configurés:
-  - `ILOVEBACON&TEA` → STATION illimité
+  - `ILOVEBACON-AND-TEA` → STATION illimité
   - `BACONALGO2040` → STATION gratuit
   - `PRO2040` → PRO gratuit
 - ✅ OAuth (Google, Discord, GitHub)
@@ -260,7 +260,7 @@ Services accessibles:
 
 ### Codes Promo
 Les utilisateurs peuvent utiliser ces codes lors de l'inscription:
-- `ILOVEBACON&TEA` - Accès STATION illimité
+- `ILOVEBACON-AND-TEA` - Accès STATION illimité
 - `BACONALGO2040` - Accès STATION gratuit
 - `PRO2040` - Accès PRO gratuit
 

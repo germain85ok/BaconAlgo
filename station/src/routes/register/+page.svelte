@@ -16,7 +16,7 @@
 
 	// Liste des codes promo valides pour affichage d'aide
 	const validPromoCodes = [
-		{ code: 'ILOVEBACON&TEA', description: 'Accès Station (illimité)' },
+		{ code: 'ILOVEBACON-AND-TEA', description: 'Accès Station (illimité)' },
 		{ code: 'BACONALGO2040', description: 'Accès Station gratuit' },
 		{ code: 'PRO2040', description: 'Accès PRO gratuit' }
 	];
@@ -230,7 +230,7 @@
 						id="referral"
 						type="text"
 						bind:value={promoCode}
-						placeholder="ILOVEBACON&TEA"
+						placeholder="ILOVEBACON-AND-TEA"
 						class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-text-secondary focus:outline-none focus:ring-2 focus:ring-bacon-orange/50 transition-all uppercase"
 					/>
 					{#if showPromoInfo}

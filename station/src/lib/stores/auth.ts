@@ -49,7 +49,7 @@ function createAuthStore() {
 
 	// Codes promo et leurs tiers associés
 	const PROMO_CODES: Record<string, SubscriptionTier['level']> = {
-		'ILOVEBACON&TEA': 'STATION',
+		'ILOVEBACON-AND-TEA': 'STATION',  // URL-safe version
 		'BACONALGO2040': 'STATION',
 		'PRO2040': 'PRO'
 	};

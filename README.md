@@ -231,7 +231,7 @@ BaconAlgo 2040 utilise Supabase pour l'authentification avec support des tiers d
 - **INSTITUTIONAL** - Niveau institutionnel
 
 ### Codes Promo
-- `ILOVEBACON&TEA` → Accès STATION (illimité)
+- `ILOVEBACON-AND-TEA` → Accès STATION (illimité)
 - `BACONALGO2040` → Accès STATION gratuit
 - `PRO2040` → Accès PRO gratuit
 
