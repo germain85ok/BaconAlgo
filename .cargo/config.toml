@@ -1,0 +1,43 @@
+# BaconAlgo 2040 Quantum Edition - Compilation optimisée pour performance maximale
+
+[build]
+# Use all CPU cores for parallel compilation
+jobs = 8
+
+[target.x86_64-unknown-linux-gnu]
+# Optimisations CPU-spécifiques pour performance maximale
+rustflags = [
+    "-C", "target-cpu=native",      # Optimiser pour le CPU actuel
+    "-C", "opt-level=3",             # Optimisation maximale
+    "-C", "lto=fat",                 # Link-time optimization aggressive
+    "-C", "codegen-units=1",         # Un seul codegen unit pour meilleures optimisations
+    "-C", "embed-bitcode=yes",       # Embed bitcode pour LTO
+    "-C", "panic=abort",             # Panic = abort (plus rapide, moins de code)
+]
+
+[target.x86_64-pc-windows-msvc]
+rustflags = [
+    "-C", "target-cpu=native",
+    "-C", "opt-level=3",
+    "-C", "lto=fat",
+    "-C", "codegen-units=1",
+    "-C", "panic=abort",
+]
+
+[target.aarch64-unknown-linux-gnu]
+rustflags = [
+    "-C", "target-cpu=native",
+    "-C", "opt-level=3",
+    "-C", "lto=fat",
+    "-C", "codegen-units=1",
+    "-C", "panic=abort",
+]
+
+# Profil release ultra-optimisé
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = true
+debug = false
