@@ -2,10 +2,14 @@
 	import Navbar from '$lib/components/ui/Navbar.svelte';
 	import Footer from '$lib/components/ui/Footer.svelte';
 	import GlassCard from '$lib/components/ui/GlassCard.svelte';
+	import { validateCoupon, calculatePriceWithDiscount, PRICING, type CouponValidationResult } from '$lib/services/subscriptions';
 
 	let billingPeriod = $state<'monthly' | 'yearly'>('monthly');
 	let promoCode = $state('');
 	let activeFaq = $state<number | null>(null);
+	let couponValidation = $state<CouponValidationResult | null>(null);
+	let couponMessage = $state<string>('');
+	let isValidatingCoupon = $state(false);
 
 	const faqs = [
 		{
@@ -32,61 +36,59 @@
 
 	const tiers = [
 		{
-			name: 'Free',
+			name: 'FREE',
 			price: { monthly: 0, yearly: 0 },
 			popular: false,
 			features: [
-				'5 symbols tracked',
-				'Delayed signals (15 min)',
-				'Basic indicators',
+				'YouTube Live access',
+				'Basic dashboard',
 				'Community Discord access',
-				'Ads supported',
-				'Weekly market reports'
+				'Weekly market reports',
+				'Limited signal history'
 			]
 		},
 		{
-			name: 'Indicator',
-			price: { monthly: 20, yearly: 16 * 12 },
+			name: 'INDICATEUR',
+			price: { monthly: 20, yearly: 192 }, // 20% discount: 20 * 12 * 0.8 = 192
 			popular: false,
 			features: [
-				'TradingView indicator',
+				'TradingView indicators',
+				'Basic signals',
 				'Discord alerts',
-				'50 symbols tracked',
-				'Real-time signals',
-				'All SMC indicators',
-				'Priority support',
+				'Real-time data',
+				'Email support',
 				'No ads'
 			]
 		},
 		{
-			name: 'Scanner',
-			price: { monthly: 30, yearly: 24 * 12 },
+			name: 'SCANNER',
+			price: { monthly: 30, yearly: 288 }, // 20% discount: 30 * 12 * 0.8 = 288
 			popular: true,
 			features: [
-				'Real-time scanner',
-				'All filters & indicators',
-				'500+ symbols tracked',
-				'Advanced alerts',
-				'Custom watchlists',
-				'API access (limited)',
+				'Stock scanner',
+				'Advanced filters',
+				'Custom alerts',
+				'Watchlists',
+				'All indicators',
 				'Priority support',
+				'API access (limited)',
 				'No ads'
 			]
 		},
 		{
-			name: 'Station',
-			price: { monthly: 50, yearly: 40 * 12 },
+			name: 'STATION',
+			price: { monthly: 50, yearly: 480 }, // 20% discount: 50 * 12 * 0.8 = 480
 			popular: false,
 			features: [
-				'EVERYTHING included',
-				'Auto-trading bot',
+				'Full trading station',
+				'Auto-trade functionality',
+				'All broker integrations',
 				'Portfolio management',
-				'Broker integration',
 				'Full API access',
-				'Unlimited symbols',
-				'White-label options',
-				'Dedicated support',
-				'Early access features'
+				'Unlimited everything',
+				'Priority support',
+				'Early access features',
+				'White-label options'
 			]
 		}
 	];
@@ -107,9 +109,65 @@
 		activeFaq = activeFaq === index ? null : index;
 	}
 
-	function applyPromoCode() {
-		// TODO: Implement promo code validation
-		console.log('Applying promo code:', promoCode);
+	async function applyPromoCode() {
+		if (!promoCode.trim()) {
+			couponMessage = 'Please enter a promo code';
+			couponValidation = null;
+			return;
+		}
+
+		isValidatingCoupon = true;
+		couponMessage = '';
+
+		try {
+			// Validate against a sample plan (we'll validate per-plan at checkout)
+			const result = await validateCoupon(promoCode.toUpperCase(), 'STATION');
+			couponValidation = result;
+			couponMessage = result.message;
+		} catch (err) {
+			couponMessage = 'Error validating coupon';
+			couponValidation = null;
+		} finally {
+			isValidatingCoupon = false;
+		}
+	}
+
+	function getPriceWithCoupon(tier: typeof tiers[0]) {
+		const basePrice = billingPeriod === 'yearly' ? tier.price.yearly : tier.price.monthly;
+		
+		if (couponValidation?.valid && tier.name !== 'FREE') {
+			const discountedPrice = calculatePriceWithDiscount(
+				tier.name as keyof typeof PRICING,
+				billingPeriod,
+				couponValidation
+			);
+			
+			if (billingPeriod === 'yearly') {
+				return {
+					display: `$${Math.floor(discountedPrice / 12)}/mo`,
+					original: `$${Math.floor(basePrice / 12)}/mo`,
+					savings: basePrice - discountedPrice
+				};
+			}
+			return {
+				display: `$${discountedPrice.toFixed(0)}/mo`,
+				original: `$${basePrice}/mo`,
+				savings: basePrice - discountedPrice
+			};
+		}
+		
+		if (billingPeriod === 'yearly') {
+			return {
+				display: `$${Math.floor(basePrice / 12)}/mo`,
+				original: null,
+				savings: 0
+			};
+		}
+		return {
+			display: `$${basePrice}/mo`,
+			original: null,
+			savings: 0
+		};
 	}
 </script>
 
@@ -168,9 +226,21 @@
 						<div class="text-center mb-6">
 							<h3 class="text-2xl font-display font-bold text-text-primary mb-2">{tier.name}</h3>
 							<div class="mb-2">
-								<span class="text-4xl font-bold bg-gradient-to-r from-bacon-orange to-bacon-red bg-clip-text text-transparent">
-									{getPrice(tier)}
-								</span>
+								{#if getPriceWithCoupon(tier).original}
+									<div class="text-sm text-text-secondary line-through mb-1">
+										{getPriceWithCoupon(tier).original}
+									</div>
+									<span class="text-4xl font-bold bg-gradient-to-r from-green-400 to-green-600 bg-clip-text text-transparent">
+										{getPriceWithCoupon(tier).display}
+									</span>
+									<div class="text-xs text-green-400 mt-1">
+										Save ${getPriceWithCoupon(tier).savings.toFixed(0)}!
+									</div>
+								{:else}
+									<span class="text-4xl font-bold bg-gradient-to-r from-bacon-orange to-bacon-red bg-clip-text text-transparent">
+										{getPriceWithCoupon(tier).display}
+									</span>
+								{/if}
 							</div>
 							{#if billingPeriod === 'yearly' && tier.price.yearly > 0}
 								<p class="text-text-secondary text-sm">{getYearlyPrice(tier)} billed annually</p>
@@ -212,11 +282,17 @@
 						/>
 						<button
 							onclick={applyPromoCode}
-							class="px-6 py-3 bg-gradient-to-r from-bacon-orange to-bacon-red text-white rounded-lg font-semibold hover:shadow-lg hover:shadow-bacon-orange/30 transition-all"
+							disabled={isValidatingCoupon}
+							class="px-6 py-3 bg-gradient-to-r from-bacon-orange to-bacon-red text-white rounded-lg font-semibold hover:shadow-lg hover:shadow-bacon-orange/30 transition-all disabled:opacity-50"
 						>
-							Apply
+							{isValidatingCoupon ? 'Checking...' : 'Apply'}
 						</button>
 					</div>
+					{#if couponMessage}
+						<div class="mt-3 text-sm {couponValidation?.valid ? 'text-green-400' : 'text-red-400'}">
+							{couponMessage}
+						</div>
+					{/if}
 				</GlassCard>
 			</div>
 
