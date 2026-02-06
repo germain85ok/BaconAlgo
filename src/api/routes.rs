@@ -1,12 +1,19 @@
 use axum::{
     extract::State,
     response::sse::{Event, Sse},
+    routing::{get, post, put},
+    Router,
 };
 use tokio_stream::{wrappers::BroadcastStream, StreamExt};
 use std::convert::Infallible;
 
 use crate::bus::SignalBus;
 use crate::api::models::LiveSignal;
+
+mod historical;
+mod portfolio;
+mod preferences;
+mod websocket;
 
 pub async fn sse_signals(
     State(bus): State<SignalBus<LiveSignal>>,
@@ -26,4 +33,14 @@ let stream = BroadcastStream::new(rx)
     .filter_map(|x| x);
 
     Sse::new(stream)
+}
+
+pub fn api_routes() -> Router {
+    Router::new()
+        .route("/api/historical/:symbol", get(historical::get_historical))
+        .route("/api/portfolio", get(portfolio::get_portfolio))
+        .route("/api/portfolio/position", post(portfolio::create_order))
+        .route("/api/preferences", get(preferences::get_preferences))
+        .route("/api/preferences", put(preferences::update_preferences))
+        .route("/ws", get(websocket::websocket_handler))
 }

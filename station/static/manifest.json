@@ -1,32 +1,54 @@
 {
-  "name": "BaconAlgo 2030 - Trading Platform",
-  "short_name": "BaconAlgo",
-  "description": "Professional institutional-grade trading platform with Smart Money Concepts",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#ff6b35",
-  "orientation": "portrait-primary",
-  "icons": [
-    {
-      "src": "/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
-  ],
-  "categories": ["finance", "business", "productivity"],
-  "screenshots": [
-    {
-      "src": "/screenshot1.png",
-      "sizes": "1280x720",
-      "type": "image/png"
-    }
-  ]
+	"name": "BaconAlgo 2040",
+	"short_name": "BaconAlgo",
+	"description": "Système de Trading Neural alimenté par IA - 2040",
+	"lang": "fr-CA",
+	"start_url": "/",
+	"display": "standalone",
+	"background_color": "#0a0a0f",
+	"theme_color": "#ff6b35",
+	"orientation": "any",
+	"categories": ["finance", "productivity", "utilities"],
+	"icons": [
+		{
+			"src": "/icon-192.png",
+			"sizes": "192x192",
+			"type": "image/png",
+			"purpose": "any maskable"
+		},
+		{
+			"src": "/icon-512.png",
+			"sizes": "512x512",
+			"type": "image/png",
+			"purpose": "any maskable"
+		}
+	],
+	"shortcuts": [
+		{
+			"name": "Tableau de bord",
+			"short_name": "Dashboard",
+			"description": "Accéder au tableau de bord principal",
+			"url": "/dashboard"
+		},
+		{
+			"name": "Signaux",
+			"short_name": "Signaux",
+			"description": "Voir les signaux de trading en temps réel",
+			"url": "/dashboard?tab=signals"
+		},
+		{
+			"name": "Portfolio",
+			"short_name": "Portfolio",
+			"description": "Gérer votre portfolio",
+			"url": "/dashboard?tab=portfolio"
+		}
+	],
+	"screenshots": [
+		{
+			"src": "/screenshot1.png",
+			"sizes": "1280x720",
+			"type": "image/png"
+		}
+	]
 }
+

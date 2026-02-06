@@ -193,3 +193,120 @@
 ::-webkit-scrollbar-thumb:hover {
 	background: #ff6b35;
 }
+
+/* BaconAlgo 2040 Custom Animations */
+@keyframes pulse-glow {
+	0%, 100% {
+		opacity: 1;
+		filter: drop-shadow(0 0 5px rgba(255, 107, 53, 0.5));
+	}
+	50% {
+		opacity: 0.8;
+		filter: drop-shadow(0 0 20px rgba(255, 107, 53, 0.8));
+	}
+}
+
+@keyframes shimmer {
+	0% {
+		background-position: -1000px 0;
+	}
+	100% {
+		background-position: 1000px 0;
+	}
+}
+
+@keyframes neon-border {
+	0%, 100% {
+		border-color: rgba(255, 107, 53, 0.3);
+		box-shadow: 0 0 10px rgba(255, 107, 53, 0.3);
+	}
+	50% {
+		border-color: rgba(255, 107, 53, 0.8);
+		box-shadow: 0 0 30px rgba(255, 107, 53, 0.6);
+	}
+}
+
+@keyframes float {
+	0%, 100% {
+		transform: translateY(0);
+	}
+	50% {
+		transform: translateY(-10px);
+	}
+}
+
+@keyframes slide-in-left {
+	from {
+		opacity: 0;
+		transform: translateX(-30px);
+	}
+	to {
+		opacity: 1;
+		transform: translateX(0);
+	}
+}
+
+@keyframes slide-in-right {
+	from {
+		opacity: 0;
+		transform: translateX(30px);
+	}
+	to {
+		opacity: 1;
+		transform: translateX(0);
+	}
+}
+
+@keyframes fade-in {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+@keyframes scale-in {
+	from {
+		opacity: 0;
+		transform: scale(0.9);
+	}
+	to {
+		opacity: 1;
+		transform: scale(1);
+	}
+}
+
+.animate-pulse-glow {
+	animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-shimmer {
+	background: linear-gradient(90deg, transparent, rgba(255, 107, 53, 0.3), transparent);
+	background-size: 1000px 100%;
+	animation: shimmer 2s infinite;
+}
+
+.animate-neon-border {
+	animation: neon-border 2s ease-in-out infinite;
+}
+
+.animate-float {
+	animation: float 3s ease-in-out infinite;
+}
+
+.animate-slide-in-left {
+	animation: slide-in-left 0.5s ease-out;
+}
+
+.animate-slide-in-right {
+	animation: slide-in-right 0.5s ease-out;
+}
+
+.animate-fade-in {
+	animation: fade-in 0.5s ease-out;
+}
+
+.animate-scale-in {
+	animation: scale-in 0.5s ease-out;
+}

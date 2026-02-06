@@ -1,4 +1,8 @@
+pub mod quantum_bus;
+
 use tokio::sync::broadcast;
+
+pub use quantum_bus::{QuantumBus, TopicMessage, BusError};
 
 #[derive(Clone)]
 pub struct SignalBus<T: Clone> {
