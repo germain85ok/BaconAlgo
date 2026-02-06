@@ -1,3 +1,17 @@
 [workspace]
 resolver = "2"
 members = ["execution"]
+
+# Profil release ultra-optimisé (défini au niveau workspace)
+[profile.release]
+opt-level = 3  # Optimisation maximale
+lto = "thin"  # Thin LTO (compatible avec proc-macros)
+codegen-units = 16  # Équilibre entre performance et temps de compilation
+panic = "abort"  # Panic = abort (plus rapide)
+strip = true  # Strip symbols pour binary plus petit
+debug = false  # Pas de debug info
+overflow-checks = false  # Désactiver les checks d'overflow en release
+
+[profile.bench]
+inherits = "release"
+debug = true  # Garder les symbols pour profiling

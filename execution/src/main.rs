@@ -5,6 +5,8 @@ mod market;
 mod news;
 mod config;
 mod families;
+mod engine;  // Quantum engine module
+mod backtest;  // Backtest module
 
 use axum::{
     routing::{get, post},
@@ -22,6 +24,7 @@ use api::{
     signals::{get_signals, stream_signals},
     market::{get_fear_greed_index, get_vix, get_movers},
     news::get_news,
+    performance::{get_performance_metrics, health_check as api_health_check, status},
     LiveSignal,
 };
 use bus::SignalBus;
@@ -90,6 +93,11 @@ async fn main() {
         
         // News endpoint
         .route("/api/news", get(get_news))
+        
+        // Performance monitoring endpoints
+        .route("/api/metrics", get(get_performance_metrics))
+        .route("/api/status", get(status))
+        .route("/api/health", get(api_health_check))
         
         // Manual scan trigger
         .route("/api/scan", post(trigger_scan))

@@ -1,0 +1,12 @@
+cargo:rerun-if-changed=build.rs
+cargo:warning=🚀 Building BaconAlgo 2040 Quantum Edition
+cargo:warning=   Architecture: x86_64
+cargo:warning=   OS: linux
+cargo:warning=   ✅ AVX2 disponible
+cargo:rustc-cfg=feature="avx2"
+cargo:warning=   ✅ AVX disponible
+cargo:rustc-cfg=feature="avx"
+cargo:warning=   ✅ SSE4.2 disponible
+cargo:rustc-cfg=feature="sse42"
+cargo:warning=   ✅ FMA disponible
+cargo:rustc-cfg=feature="fma"

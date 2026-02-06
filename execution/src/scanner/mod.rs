@@ -1,6 +1,12 @@
+// BaconAlgo 2040 Quantum Edition - Scanner Module
 pub mod timeframe;
 pub mod context;
 pub mod engine;
+
+// Quantum components
+pub mod quantum_scanner;
+pub mod signal_engine;
+pub mod market_data;
 
 use std::sync::Arc;
 use tokio::sync::broadcast;
@@ -8,6 +14,10 @@ use tokio::time::{interval, Duration};
 use crate::api::LiveSignal;
 use crate::config::CONFIG;
 use crate::families::{Indicator, MarketData, SignalType};
+
+pub use quantum_scanner::{QuantumScanner, QuantumScannerConfig, ScanFilter, ScanResult};
+pub use signal_engine::{SignalEngine, TradingSignal, Timeframe as SignalTimeframe};
+pub use market_data::{MarketDataHandler, DataHandlerConfig, MarketTick, OrderBook};
 
 /// Scanner orchestrator that coordinates scanning and signal generation
 pub struct Scanner {

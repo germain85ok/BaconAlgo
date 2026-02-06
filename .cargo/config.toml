@@ -1,0 +1,21 @@
+# BaconAlgo 2040 Quantum Edition - Compilation optimisée pour performance maximale
+
+[build]
+# Use all CPU cores for parallel compilation
+jobs = 8
+
+[target.x86_64-unknown-linux-gnu]
+# Optimisations CPU-spécifiques pour performance maximale
+rustflags = [
+    "-C", "target-cpu=native",      # Optimiser pour le CPU actuel
+]
+
+[target.x86_64-pc-windows-msvc]
+rustflags = [
+    "-C", "target-cpu=native",
+]
+
+[target.aarch64-unknown-linux-gnu]
+rustflags = [
+    "-C", "target-cpu=native",
+]

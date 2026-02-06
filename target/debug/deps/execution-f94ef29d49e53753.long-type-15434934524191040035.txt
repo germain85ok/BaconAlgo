@@ -1,0 +1,3 @@
+backtest_engine::_::<impl Deserialize<'de> for BacktestMetrics>::deserialize::__Field
+backtest_engine::_::<impl Deserialize<'de> for BacktestResult>::deserialize::__Field
+backtest_engine::_::<impl Deserialize<'de> for BacktestTrade>::deserialize::__Field

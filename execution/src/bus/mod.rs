@@ -1,4 +1,8 @@
+pub mod quantum_bus;
+
 use tokio::sync::broadcast;
+
+pub use quantum_bus::{QuantumBus, QuantumBusConfig, BusMetrics, BusMessage};
 
 #[derive(Clone)]
 pub struct SignalBus<T: Clone> {
@@ -24,3 +28,4 @@ impl<T: Clone> SignalBus<T> {
         self.tx.clone()
     }
 }
+
