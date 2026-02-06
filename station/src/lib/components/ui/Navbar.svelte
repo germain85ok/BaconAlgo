@@ -34,7 +34,7 @@
 	}
 
 	// Check if user is admin (germain85@hotmail.com)
-	$: isAdmin = user?.email === 'germain85@hotmail.com' || user?.is_admin === true;
+	let isAdmin = $derived(user?.email === 'germain85@hotmail.com' || user?.is_admin === true);
 </script>
 
 <nav class="sticky top-0 z-40 bg-bg-dark/80 backdrop-blur-md border-b border-white/10">
