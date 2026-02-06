@@ -205,5 +205,107 @@ async def close_all_positions():
     """Close all positions (Kill Switch)"""
     return {"message": "All positions closed", "count": 3}
 
+@app.get("/api/candles/{symbol}")
+async def get_candles(symbol: str, timeframe: str = "15"):
+    """
+    Returns candle data with pre-calculated SMC levels
+    """
+    # Generate mock candle data for now
+    import time
+    now = int(time.time())
+    candles = []
+    volume_data = []
+    base_price = 50000.0 if 'BTC' in symbol else 2800.0 if 'ETH' in symbol else 100.0
+    
+    # Generate 300 candles
+    for i in range(300, 0, -1):
+        timestamp = now - (i * 900)  # 15 min intervals
+        volatility = (hash(str(timestamp)) % 200) - 100
+        open_price = base_price + volatility
+        close_price = open_price + ((hash(str(timestamp + 1)) % 400) - 200)
+        high_price = max(open_price, close_price) + (hash(str(timestamp + 2)) % 150)
+        low_price = min(open_price, close_price) - (hash(str(timestamp + 3)) % 150)
+        
+        candles.append({
+            "time": timestamp,
+            "open": round(open_price, 2),
+            "high": round(high_price, 2),
+            "low": round(low_price, 2),
+            "close": round(close_price, 2),
+        })
+        
+        volume_data.append({
+            "time": timestamp,
+            "value": (hash(str(timestamp + 4)) % 1000000),
+            "color": "#26a69a" if close_price >= open_price else "#ef5350"
+        })
+        
+        base_price = close_price
+    
+    # Calculate SMC levels
+    current_price = candles[-1]["close"]
+    
+    fvg = [
+        {
+            "type": "bullish",
+            "low": round(current_price - 500, 2),
+            "high": round(current_price - 300, 2),
+            "startTime": now - (50 * 900),
+            "endTime": now,
+        },
+    ]
+    
+    order_blocks = [
+        {
+            "type": "bullish",
+            "low": round(current_price - 800, 2),
+            "high": round(current_price - 600, 2),
+            "startTime": now - (100 * 900),
+            "endTime": now,
+        },
+    ]
+    
+    bos = [
+        {
+            "type": "bullish",
+            "price": round(current_price - 400, 2),
+            "time": now - (30 * 900),
+        },
+    ]
+    
+    liquidity = [
+        {
+            "type": "bsl",
+            "price": round(current_price + 600, 2),
+            "time": now - (80 * 900),
+        },
+        {
+            "type": "ssl",
+            "price": round(current_price - 700, 2),
+            "time": now - (70 * 900),
+        },
+    ]
+    
+    vwap_data = [{"time": c["time"], "value": round(current_price * 0.998, 2)} for c in candles]
+    
+    prev_day = {
+        "high": round(current_price + 800, 2),
+        "low": round(current_price - 800, 2),
+        "close": round(current_price - 100, 2),
+    }
+    
+    return {
+        "candles": candles,
+        "volume": volume_data,
+        "smc": {
+            "fvg": fvg,
+            "orderBlocks": order_blocks,
+            "bos": bos,
+            "liquidity": liquidity,
+            "vwap": vwap_data,
+            "prevDay": prev_day,
+        }
+    }
+
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
