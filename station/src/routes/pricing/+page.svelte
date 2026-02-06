@@ -120,10 +120,16 @@
 		couponMessage = '';
 
 		try {
-			// Validate against a sample plan (we'll validate per-plan at checkout)
-			const result = await validateCoupon(promoCode.toUpperCase(), 'STATION');
+			// Validate against all paid plans to check if coupon exists
+			// Actual validation per-plan will happen at checkout
+			const result = await validateCoupon(promoCode.toUpperCase(), 'INDICATEUR');
 			couponValidation = result;
-			couponMessage = result.message;
+			
+			if (result.valid) {
+				couponMessage = `✓ Valid! ${result.discount_percent ? result.discount_percent + '% off' : '$' + result.discount_amount + ' off'}`;
+			} else {
+				couponMessage = result.message;
+			}
 		} catch (err) {
 			couponMessage = 'Error validating coupon';
 			couponValidation = null;
@@ -144,19 +150,31 @@
 			
 			if (billingPeriod === 'yearly') {
 				return {
-					display: `$${Math.floor(discountedPrice / 12)}/mo`,
-					original: `$${Math.floor(basePrice / 12)}/mo`,
+					display: `$${(discountedPrice / 12).toFixed(2)}/mo`,
+					original: `$${(basePrice / 12).toFixed(2)}/mo`,
 					savings: basePrice - discountedPrice
 				};
 			}
 			return {
-				display: `$${discountedPrice.toFixed(0)}/mo`,
-				original: `$${basePrice}/mo`,
+				display: `$${discountedPrice.toFixed(2)}/mo`,
+				original: `$${basePrice.toFixed(2)}/mo`,
 				savings: basePrice - discountedPrice
 			};
 		}
 		
 		if (billingPeriod === 'yearly') {
+			return {
+				display: `$${(basePrice / 12).toFixed(2)}/mo`,
+				original: null,
+				savings: 0
+			};
+		}
+		return {
+			display: `$${basePrice.toFixed(2)}/mo`,
+			original: null,
+			savings: 0
+		};
+	}
 			return {
 				display: `$${Math.floor(basePrice / 12)}/mo`,
 				original: null,

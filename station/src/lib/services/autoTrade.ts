@@ -84,12 +84,28 @@ export async function getAutoTradeSettings(
 	return { data, error };
 }
 
+export interface UpdateAutoTradeSettings {
+	enabled?: boolean;
+	mode?: 'paper' | 'semi-auto' | 'full-auto';
+	broker_connection_id?: string | null;
+	max_daily_loss?: number;
+	max_position_size_percent?: number;
+	max_concurrent_positions?: number;
+	auto_execute_grades?: string[];
+	symbol_blacklist?: string[];
+	trading_hours_start?: string | null;
+	trading_hours_end?: string | null;
+	discord_webhook_url?: string | null;
+	telegram_chat_id?: string | null;
+	email_notifications?: boolean;
+}
+
 /**
  * Create or update auto-trade settings
  */
 export async function upsertAutoTradeSettings(
 	userId: string,
-	settings: Partial<AutoTradeSettings>
+	settings: UpdateAutoTradeSettings
 ): Promise<{ data: AutoTradeSettings | null; error: any }> {
 	const { data, error } = await supabase
 		.from('auto_trade_settings')

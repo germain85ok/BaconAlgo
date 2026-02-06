@@ -158,10 +158,12 @@ CREATE INDEX IF NOT EXISTS idx_coupons_code ON coupons(code);
 CREATE INDEX IF NOT EXISTS idx_coupons_is_active ON coupons(is_active);
 CREATE INDEX IF NOT EXISTS idx_coupons_valid_until ON coupons(valid_until);
 
+-- Subscriptions indexes
 CREATE INDEX IF NOT EXISTS idx_subscriptions_user_id ON subscriptions(user_id);
 CREATE INDEX IF NOT EXISTS idx_subscriptions_status ON subscriptions(status);
 CREATE INDEX IF NOT EXISTS idx_subscriptions_plan ON subscriptions(plan);
 CREATE INDEX IF NOT EXISTS idx_subscriptions_stripe_subscription_id ON subscriptions(stripe_subscription_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_subscriptions_user_active ON subscriptions(user_id) WHERE status = 'active';
 
 CREATE INDEX IF NOT EXISTS idx_broker_connections_user_id ON broker_connections(user_id);
 CREATE INDEX IF NOT EXISTS idx_broker_connections_broker_name ON broker_connections(broker_name);

@@ -35,11 +35,6 @@
 		return `$${amount.toFixed(2)}`;
 	}
 
-	$effect(() => {
-		// Filtered subscriptions based on status and plan
-		filteredSubscriptions;
-	});
-
 	const filteredSubscriptions = $derived(
 		subscriptions.filter(sub => {
 			if (filterStatus !== 'all' && sub.status !== filterStatus) return false;
@@ -51,9 +46,15 @@
 	const stats = $derived({
 		total: subscriptions.length,
 		active: subscriptions.filter(s => s.status === 'active').length,
+		// Calculate annualized revenue based on billing cycles
 		revenue: subscriptions
 			.filter(s => s.status === 'active')
-			.reduce((sum, s) => sum + (s.amount || 0), 0)
+			.reduce((sum, s) => {
+				const monthlyEquivalent = s.billing_cycle === 'yearly' 
+					? (s.amount || 0) / 12 
+					: (s.amount || 0);
+				return sum + monthlyEquivalent;
+			}, 0)
 	});
 </script>
 

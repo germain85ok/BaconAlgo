@@ -61,7 +61,8 @@ export function calculatePriceWithDiscount(
 	}
 
 	if (coupon.discount_percent !== null) {
-		return basePrice * (1 - coupon.discount_percent / 100);
+		const discounted = basePrice * (1 - coupon.discount_percent / 100);
+		return Math.round(discounted * 100) / 100; // Round to 2 decimal places
 	}
 
 	if (coupon.discount_amount !== null) {
