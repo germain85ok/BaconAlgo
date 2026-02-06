@@ -1,32 +1,100 @@
 {
-  "name": "BaconAlgo 2030 - Trading Platform",
-  "short_name": "BaconAlgo",
-  "description": "Professional institutional-grade trading platform with Smart Money Concepts",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#ff6b35",
-  "orientation": "portrait-primary",
-  "icons": [
-    {
-      "src": "/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
-  ],
-  "categories": ["finance", "business", "productivity"],
-  "screenshots": [
-    {
-      "src": "/screenshot1.png",
-      "sizes": "1280x720",
-      "type": "image/png"
-    }
-  ]
+	"name": "BaconAlgo 2040 - Plateforme de Trading Institutionnelle",
+	"short_name": "BaconAlgo 2040",
+	"description": "Plateforme de trading professionnelle avec Smart Money Concepts, signaux IA en temps réel et analyse multi-timeframes",
+	"start_url": "/",
+	"display": "standalone",
+	"background_color": "#0a0a0f",
+	"theme_color": "#ff6b35",
+	"orientation": "portrait-primary",
+	"scope": "/",
+	"icons": [
+		{
+			"src": "/bacon/icon-192.png",
+			"sizes": "192x192",
+			"type": "image/png",
+			"purpose": "any maskable"
+		},
+		{
+			"src": "/bacon/icon-512.png",
+			"sizes": "512x512",
+			"type": "image/png",
+			"purpose": "any maskable"
+		},
+		{
+			"src": "/bacon/logo.svg",
+			"sizes": "any",
+			"type": "image/svg+xml",
+			"purpose": "any"
+		}
+	],
+	"screenshots": [
+		{
+			"src": "/screenshot1.png",
+			"sizes": "1280x720",
+			"type": "image/png",
+			"form_factor": "wide",
+			"label": "Panneau de Contrôle Neural IA"
+		},
+		{
+			"src": "/screenshot2.png",
+			"sizes": "750x1334",
+			"type": "image/png",
+			"form_factor": "narrow",
+			"label": "Vue Mobile Signaux"
+		}
+	],
+	"categories": ["finance", "business", "productivity", "utilities"],
+	"shortcuts": [
+		{
+			"name": "Dashboard",
+			"short_name": "Dashboard",
+			"description": "Accéder au tableau de bord",
+			"url": "/dashboard",
+			"icons": [
+				{
+					"src": "/bacon/icon-96.png",
+					"sizes": "96x96"
+				}
+			]
+		},
+		{
+			"name": "Signaux",
+			"short_name": "Signaux",
+			"description": "Voir les signaux en temps réel",
+			"url": "/dashboard#signals",
+			"icons": [
+				{
+					"src": "/bacon/icon-96.png",
+					"sizes": "96x96"
+				}
+			]
+		},
+		{
+			"name": "Portfolio",
+			"short_name": "Portfolio",
+			"description": "Gérer votre portfolio",
+			"url": "/portfolio",
+			"icons": [
+				{
+					"src": "/bacon/icon-96.png",
+					"sizes": "96x96"
+				}
+			]
+		}
+	],
+	"share_target": {
+		"action": "/share",
+		"method": "POST",
+		"enctype": "multipart/form-data",
+		"params": {
+			"title": "title",
+			"text": "text",
+			"url": "url"
+		}
+	},
+	"related_applications": [],
+	"prefer_related_applications": false,
+	"lang": "fr-CA",
+	"dir": "ltr"
 }
