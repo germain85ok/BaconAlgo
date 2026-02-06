@@ -79,6 +79,67 @@ show_fvg = input.bool(true, "Afficher FVG", group=group_ict)
 show_order_blocks = input.bool(true, "Afficher Order Blocks", group=group_ict)
 ob_lookback = input.int(10, "OB Lookback", minval=5, maxval=50, group=group_ict)
 fvg_mitigation = input.float(0.5, "FVG Mitigation %", minval=0.1, maxval=1.0, step=0.1, group=group_ict)
+show_bos = input.bool(true, "📍 Show BOS", group=group_ict)
+show_choch = input.bool(true, "🔄 Show CHoCH", group=group_ict)
+show_liquidity = input.bool(true, "💰 Show Liquidity Zones", group=group_ict)
+liquidity_lookback = input.int(10, "Liquidity Detection Length", minval=3, maxval=50, group=group_ict)
+
+// ═══════════════════════════════════════════════════════════════════
+// 🔑 KEY LEVELS
+// ═══════════════════════════════════════════════════════════════════
+group_levels = "🔑 KEY LEVELS"
+show_prev_day = input.bool(true, "📅 Previous Day H/L/C", group=group_levels)
+show_prev_week = input.bool(true, "📆 Previous Week H/L", group=group_levels)
+show_prev_month = input.bool(false, "📆 Previous Month H/L", group=group_levels)
+show_midnight_open = input.bool(true, "🌙 Midnight Open", group=group_levels)
+show_weekly_open = input.bool(true, "📊 Weekly Open", group=group_levels)
+
+// ═══════════════════════════════════════════════════════════════════
+// 📏 OPENING RANGE
+// ═══════════════════════════════════════════════════════════════════
+group_or = "📏 OPENING RANGE"
+show_or = input.bool(true, "Show Opening Range", group=group_or)
+or_minutes = input.int(15, "OR Minutes", options=[5, 15, 30, 60], group=group_or)
+show_or_extensions = input.bool(true, "Show OR Extensions", group=group_or)
+
+// ═══════════════════════════════════════════════════════════════════
+// 📊 VWAP SETTINGS
+// ═══════════════════════════════════════════════════════════════════
+group_vwap = "📊 VWAP SETTINGS"
+show_vwap_bands = input.bool(true, "Show VWAP Bands", group=group_vwap)
+vwap_stdev_mult = input.float(1.0, "VWAP StDev Multiplier", minval=0.1, maxval=5.0, step=0.1, group=group_vwap)
+avwap_anchor = input.string("Session", "Anchored VWAP", options=["Session", "Week", "Month", "Swing High", "Swing Low"], group=group_vwap)
+
+// ═══════════════════════════════════════════════════════════════════
+// 📈 VOLUME PROFILE
+// ═══════════════════════════════════════════════════════════════════
+group_volume = "📈 VOLUME PROFILE"
+show_volume_profile = input.bool(false, "Show Volume Profile", group=group_volume, tooltip="POC/VAH/VAL levels")
+show_naked_poc = input.bool(false, "Show Naked POC", group=group_volume)
+
+// ═══════════════════════════════════════════════════════════════════
+// 🎯 FIBONACCI
+// ═══════════════════════════════════════════════════════════════════
+group_fib = "🎯 FIBONACCI"
+show_fib = input.bool(true, "Auto Fibonacci", group=group_fib)
+fib_lookback = input.int(50, "Fib Lookback", minval=10, maxval=200, group=group_fib)
+highlight_golden_pocket = input.bool(true, "Highlight Golden Pocket", group=group_fib)
+
+// ═══════════════════════════════════════════════════════════════════
+// 🔢 PSYCHOLOGICAL LEVELS
+// ═══════════════════════════════════════════════════════════════════
+group_psych = "🔢 PSYCHOLOGICAL LEVELS"
+show_psych_levels = input.bool(false, "Show Psych Levels", group=group_psych)
+psych_level_interval = input.int(100, "Level Interval", minval=1, group=group_psych)
+
+// ═══════════════════════════════════════════════════════════════════
+// 🌍 SESSIONS
+// ═══════════════════════════════════════════════════════════════════
+group_sessions = "🌍 SESSIONS"
+show_sessions = input.bool(true, "Show Trading Sessions", group=group_sessions)
+show_asian = input.bool(true, "Asian Session", group=group_sessions)
+show_london = input.bool(true, "London Session", group=group_sessions)
+show_newyork = input.bool(true, "New York Session", group=group_sessions)
 
 // ═══════════════════════════════════════════════════════════════════
 // ⛩️ HEIKIN ASHI
@@ -294,6 +355,191 @@ avg_volume = ta.sma(volume, 20)
 volume_spike = volume > avg_volume * volume_mult
 
 // ═══════════════════════════════════════════════════════════════════
+// 🔑 KEY LEVELS - Previous Day/Week/Month
+// ═══════════════════════════════════════════════════════════════════
+is_new_day = ta.change(time("D")) != 0
+is_new_week = ta.change(time("W")) != 0
+is_new_month = ta.change(time("M")) != 0
+
+var float pdh = na  // Previous Day High
+var float pdl = na  // Previous Day Low
+var float pdc = na  // Previous Day Close
+var float pwh = na  // Previous Week High
+var float pwl = na  // Previous Week Low
+var float pmh = na  // Previous Month High
+var float pml = na  // Previous Month Low
+var float midnight_open_price = na
+var float weekly_open_price = na
+
+// Store previous day levels
+if is_new_day
+    pdh := high[1]
+    pdl := low[1]
+    pdc := close[1]
+
+// Store previous week levels
+if is_new_week
+    pwh := ta.highest(high, 7)[1]
+    pwl := ta.lowest(low, 7)[1]
+    weekly_open_price := open
+
+// Store previous month levels  
+if is_new_month
+    pmh := ta.highest(high, 30)[1]
+    pml := ta.lowest(low, 30)[1]
+
+// Midnight open (00:00 UTC)
+is_midnight = hour == 0 and minute == 0
+if is_midnight
+    midnight_open_price := open
+
+// Draw Previous Day Levels
+if show_prev_day and not na(pdh)
+    var line pdh_line = na
+    var line pdl_line = na
+    var line pdc_line = na
+    if is_new_day
+        line.delete(pdh_line)
+        line.delete(pdl_line)
+        line.delete(pdc_line)
+        pdh_line := line.new(bar_index, pdh, bar_index + 50, pdh, color=color.new(color.red, 30), width=1, style=line.style_solid)
+        pdl_line := line.new(bar_index, pdl, bar_index + 50, pdl, color=color.new(color.green, 30), width=1, style=line.style_solid)
+        pdc_line := line.new(bar_index, pdc, bar_index + 50, pdc, color=color.new(color.yellow, 30), width=1, style=line.style_solid)
+        label.new(bar_index, pdh, "PDH", style=label.style_label_left, color=color.new(color.red, 70), textcolor=color.white, size=size.tiny)
+        label.new(bar_index, pdl, "PDL", style=label.style_label_left, color=color.new(color.green, 70), textcolor=color.white, size=size.tiny)
+        label.new(bar_index, pdc, "PDC", style=label.style_label_left, color=color.new(color.yellow, 70), textcolor=color.white, size=size.tiny)
+
+// Draw Previous Week Levels
+if show_prev_week and not na(pwh)
+    var line pwh_line = na
+    var line pwl_line = na
+    if is_new_week
+        line.delete(pwh_line)
+        line.delete(pwl_line)
+        pwh_line := line.new(bar_index, pwh, bar_index + 100, pwh, color=color.new(#ff0066, 20), width=2, style=line.style_solid)
+        pwl_line := line.new(bar_index, pwl, bar_index + 100, pwl, color=color.new(#00ff66, 20), width=2, style=line.style_solid)
+        label.new(bar_index, pwh, "PWH", style=label.style_label_left, color=color.new(#ff0066, 60), textcolor=color.white, size=size.small)
+        label.new(bar_index, pwl, "PWL", style=label.style_label_left, color=color.new(#00ff66, 60), textcolor=color.white, size=size.small)
+
+// Draw Previous Month Levels
+if show_prev_month and not na(pmh)
+    var line pmh_line = na
+    var line pml_line = na
+    if is_new_month
+        line.delete(pmh_line)
+        line.delete(pml_line)
+        pmh_line := line.new(bar_index, pmh, bar_index + 200, pmh, color=color.new(#9900ff, 20), width=2, style=line.style_solid)
+        pml_line := line.new(bar_index, pml, bar_index + 200, pml, color=color.new(#00ff99, 20), width=2, style=line.style_solid)
+        label.new(bar_index, pmh, "PMH", style=label.style_label_left, color=color.new(#9900ff, 60), textcolor=color.white, size=size.small)
+        label.new(bar_index, pml, "PML", style=label.style_label_left, color=color.new(#00ff99, 60), textcolor=color.white, size=size.small)
+
+// Midnight & Weekly Open
+if show_midnight_open and not na(midnight_open_price) and is_midnight
+    line.new(bar_index, midnight_open_price, bar_index + 50, midnight_open_price, color=color.new(#6699ff, 40), width=1, style=line.style_dotted)
+    label.new(bar_index, midnight_open_price, "MID", style=label.style_label_left, color=color.new(#6699ff, 70), textcolor=color.white, size=size.tiny)
+
+if show_weekly_open and not na(weekly_open_price) and is_new_week
+    line.new(bar_index, weekly_open_price, bar_index + 100, weekly_open_price, color=color.new(#ff9933, 40), width=1, style=line.style_dotted)
+    label.new(bar_index, weekly_open_price, "WO", style=label.style_label_left, color=color.new(#ff9933, 70), textcolor=color.white, size=size.tiny)
+
+// ═══════════════════════════════════════════════════════════════════
+// 📏 OPENING RANGE
+// ═══════════════════════════════════════════════════════════════════
+var float or_high = na
+var float or_low = na
+var int or_end_time = na
+is_market_open = hour == 9 and minute == 30  // 9:30 AM EST
+in_or_period = hour == 9 and minute >= 30 and minute < (30 + or_minutes)
+
+if is_market_open
+    or_high := high
+    or_low := low
+    or_end_time := time
+
+if in_or_period
+    or_high := math.max(or_high, high)
+    or_low := math.min(or_low, low)
+
+// Draw OR box and extensions
+if show_or and not na(or_high) and in_or_period
+    box.new(bar_index - 5, or_low, bar_index + 10, or_high, border_color=color.new(#ffcc00, 60), bgcolor=color.new(#ffcc00, 95), border_width=2, text="OR")
+    
+if show_or_extensions and not na(or_high) and not in_or_period and hour >= 10
+    or_range = or_high - or_low
+    // Extensions: 0.5x, 1x, 1.5x, 2x
+    ext_05_high = or_high + (or_range * 0.5)
+    ext_10_high = or_high + (or_range * 1.0)
+    ext_15_high = or_high + (or_range * 1.5)
+    ext_20_high = or_high + (or_range * 2.0)
+    ext_05_low = or_low - (or_range * 0.5)
+    ext_10_low = or_low - (or_range * 1.0)
+
+// ═══════════════════════════════════════════════════════════════════
+// 📊 VWAP WITH BANDS
+// ═══════════════════════════════════════════════════════════════════
+vwap_dev = ta.stdev(close, 20)
+vwap_upper_1 = vwap_value + vwap_dev * vwap_stdev_mult
+vwap_lower_1 = vwap_value - vwap_dev * vwap_stdev_mult
+vwap_upper_2 = vwap_value + vwap_dev * vwap_stdev_mult * 2
+vwap_lower_2 = vwap_value - vwap_dev * vwap_stdev_mult * 2
+
+plot(show_vwap_bands ? vwap_upper_1 : na, "VWAP +1σ", color=color.new(#ffcc00, 70), linewidth=1)
+plot(show_vwap_bands ? vwap_lower_1 : na, "VWAP -1σ", color=color.new(#ffcc00, 70), linewidth=1)
+plot(show_vwap_bands ? vwap_upper_2 : na, "VWAP +2σ", color=color.new(#ffcc00, 85), linewidth=1)
+plot(show_vwap_bands ? vwap_lower_2 : na, "VWAP -2σ", color=color.new(#ffcc00, 85), linewidth=1)
+
+// ═══════════════════════════════════════════════════════════════════
+// 🎯 AUTO FIBONACCI
+// ═══════════════════════════════════════════════════════════════════
+swing_high_fib = ta.highest(high, fib_lookback)
+swing_low_fib = ta.lowest(low, fib_lookback)
+
+fib_0 = swing_low_fib
+fib_236 = swing_low_fib + (swing_high_fib - swing_low_fib) * 0.236
+fib_382 = swing_low_fib + (swing_high_fib - swing_low_fib) * 0.382
+fib_5 = swing_low_fib + (swing_high_fib - swing_low_fib) * 0.5
+fib_618 = swing_low_fib + (swing_high_fib - swing_low_fib) * 0.618
+fib_65 = swing_low_fib + (swing_high_fib - swing_low_fib) * 0.65  // Golden Pocket
+fib_786 = swing_low_fib + (swing_high_fib - swing_low_fib) * 0.786
+fib_1 = swing_high_fib
+
+if show_fib
+    plot(fib_0, "Fib 0.0", color=color.new(color.gray, 60), linewidth=1, style=plot.style_linebr)
+    plot(fib_236, "Fib 0.236", color=color.new(#00ffff, 70), linewidth=1, style=plot.style_linebr)
+    plot(fib_382, "Fib 0.382", color=color.new(#00ff00, 70), linewidth=1, style=plot.style_linebr)
+    plot(fib_5, "Fib 0.5", color=color.new(color.yellow, 60), linewidth=1, style=plot.style_linebr)
+    plot(fib_618, "Fib 0.618", color=color.new(color.orange, 50), linewidth=1, style=plot.style_linebr)
+    plot(fib_65, "Fib 0.65 GP", color=color.new(#ff00ff, 40), linewidth=2, style=plot.style_linebr)
+    plot(fib_786, "Fib 0.786", color=color.new(color.red, 70), linewidth=1, style=plot.style_linebr)
+    plot(fib_1, "Fib 1.0", color=color.new(color.gray, 60), linewidth=1, style=plot.style_linebr)
+
+// Golden Pocket highlight
+if show_fib and highlight_golden_pocket
+    fill(plot(fib_618, display=display.none), plot(fib_65, display=display.none), color=color.new(#ffcc00, 95))
+
+// ═══════════════════════════════════════════════════════════════════
+// 🔢 PSYCHOLOGICAL LEVELS
+// ═══════════════════════════════════════════════════════════════════
+if show_psych_levels
+    current_price = math.round(close)
+    nearest_psych = math.round(current_price / psych_level_interval) * psych_level_interval
+    for i = -3 to 3
+        psych_level = nearest_psych + (i * psych_level_interval)
+        if psych_level > 0
+            hline(psych_level, "Psych " + str.tostring(psych_level), color=color.new(#666666, 80), linestyle=hline.style_dotted)
+
+// ═══════════════════════════════════════════════════════════════════
+// 🌍 TRADING SESSIONS
+// ═══════════════════════════════════════════════════════════════════
+asian_session = show_asian and (hour >= 19 or hour <= 4)  // 7PM-4AM ET
+london_session = show_london and hour >= 3 and hour <= 12  // 3AM-12PM ET
+ny_session = show_newyork and hour >= 9 and minute >= 30 and hour <= 16  // 9:30AM-4PM ET
+
+bgcolor(show_sessions and asian_session ? color.new(color.gray, 95) : na, title="Asian Session")
+bgcolor(show_sessions and london_session ? color.new(color.blue, 97) : na, title="London Session")
+bgcolor(show_sessions and ny_session ? color.new(color.green, 97) : na, title="NY Session")
+
+// ═══════════════════════════════════════════════════════════════════
 // 🔄 SWING DETECTION
 // ═══════════════════════════════════════════════════════════════════
 swing_high = ta.pivothigh(price_high, swing_detection_length, swing_detection_length)
@@ -317,7 +563,7 @@ if not na(swing_low)
 bullish_structure = price_close > ema20
 bearish_structure = price_close < ema20
 
-// FVG
+// FVG - Fair Value Gaps
 real_high = high
 real_low = low
 
@@ -325,9 +571,108 @@ bullish_fvg = real_high[2] < real_low
 bearish_fvg = real_low[2] > real_high
 
 if show_fvg and bullish_fvg
-    box.new(bar_index - 2, real_low, bar_index + 50, real_high[2], border_color=color.new(color.green, 85), bgcolor=color.new(color.green, 95), border_width=1)
+    fvg_box = box.new(bar_index - 2, real_low, bar_index + 50, real_high[2], border_color=color.new(color.green, 70), bgcolor=color.new(color.green, 92), border_width=1)
+    fvg_mid = (real_low + real_high[2]) / 2
+    line.new(bar_index - 2, fvg_mid, bar_index + 20, fvg_mid, color=color.new(color.green, 60), style=line.style_dashed, width=1)
+    
 if show_fvg and bearish_fvg
-    box.new(bar_index - 2, real_low[2], bar_index + 50, real_high, border_color=color.new(color.red, 85), bgcolor=color.new(color.red, 95), border_width=1)
+    fvg_box = box.new(bar_index - 2, real_low[2], bar_index + 50, real_high, border_color=color.new(color.red, 70), bgcolor=color.new(color.red, 92), border_width=1)
+    fvg_mid = (real_low[2] + real_high) / 2
+    line.new(bar_index - 2, fvg_mid, bar_index + 20, fvg_mid, color=color.new(color.red, 60), style=line.style_dashed, width=1)
+
+// ORDER BLOCKS - Last opposing candle before impulse
+var float last_bullish_ob_high = na
+var float last_bullish_ob_low = na
+var int last_bullish_ob_bar = na
+var float last_bearish_ob_high = na
+var float last_bearish_ob_low = na
+var int last_bearish_ob_bar = na
+
+// Detect bullish OB (bearish candle before bullish impulse)
+bullish_impulse = close > close[1] and (close - close[1]) > atr_value * 0.5
+bearish_candle = close[1] < open[1]
+if show_order_blocks and bullish_impulse and bearish_candle
+    last_bullish_ob_high := high[1]
+    last_bullish_ob_low := low[1]
+    last_bullish_ob_bar := bar_index - 1
+    box.new(bar_index - 1, low[1], bar_index + 30, high[1], border_color=color.new(#4488ff, 70), bgcolor=color.new(#4488ff, 92), border_width=1, text="OB", text_color=color.new(#4488ff, 30))
+
+// Detect bearish OB (bullish candle before bearish impulse)
+bearish_impulse = close < close[1] and (close[1] - close) > atr_value * 0.5
+bullish_candle = close[1] > open[1]
+if show_order_blocks and bearish_impulse and bullish_candle
+    last_bearish_ob_high := high[1]
+    last_bearish_ob_low := low[1]
+    last_bearish_ob_bar := bar_index - 1
+    box.new(bar_index - 1, low[1], bar_index + 30, high[1], border_color=color.new(#ff8844, 70), bgcolor=color.new(#ff8844, 92), border_width=1, text="OB", text_color=color.new(#ff8844, 30))
+
+// BOS & CHoCH - Break of Structure & Change of Character
+var float last_swing_high = na
+var float last_swing_low = na
+var int trend = 0  // 1 = bullish, -1 = bearish, 0 = neutral
+
+swing_high_detected = ta.pivothigh(high, pivot_length, pivot_length)
+swing_low_detected = ta.pivotlow(low, pivot_length, pivot_length)
+
+if not na(swing_high_detected)
+    last_swing_high := swing_high_detected
+    
+if not na(swing_low_detected)
+    last_swing_low := swing_low_detected
+
+// BOS Detection
+bos_bullish = show_bos and not na(last_swing_high) and close > last_swing_high and trend >= 0
+bos_bearish = show_bos and not na(last_swing_low) and close < last_swing_low and trend <= 0
+
+if bos_bullish
+    line.new(bar_index - 1, last_swing_high, bar_index + 10, last_swing_high, color=color.new(color.green, 30), width=2, style=line.style_dashed)
+    label.new(bar_index, last_swing_high, "BOS ↑", style=label.style_label_up, color=color.new(color.green, 70), textcolor=color.white, size=size.tiny)
+    
+if bos_bearish
+    line.new(bar_index - 1, last_swing_low, bar_index + 10, last_swing_low, color=color.new(color.red, 30), width=2, style=line.style_dashed)
+    label.new(bar_index, last_swing_low, "BOS ↓", style=label.style_label_down, color=color.new(color.red, 70), textcolor=color.white, size=size.tiny)
+
+// CHoCH Detection (first BOS in opposite direction)
+choch_bullish = show_choch and not na(last_swing_high) and close > last_swing_high and trend < 0
+choch_bearish = show_choch and not na(last_swing_low) and close < last_swing_low and trend > 0
+
+if choch_bullish
+    line.new(bar_index - 1, last_swing_high, bar_index + 10, last_swing_high, color=color.new(#00ffff, 30), width=2, style=line.style_solid)
+    label.new(bar_index, last_swing_high, "CHoCH ⇈", style=label.style_label_up, color=color.new(#00ffff, 50), textcolor=color.white, size=size.small)
+    trend := 1
+    
+if choch_bearish
+    line.new(bar_index - 1, last_swing_low, bar_index + 10, last_swing_low, color=color.new(#ff00ff, 30), width=2, style=line.style_solid)
+    label.new(bar_index, last_swing_low, "CHoCH ⇊", style=label.style_label_down, color=color.new(#ff00ff, 50), textcolor=color.white, size=size.small)
+    trend := -1
+
+if bos_bullish and trend == 0
+    trend := 1
+if bos_bearish and trend == 0
+    trend := -1
+
+// LIQUIDITY ZONES - Equal Highs/Lows
+var float bsl_level = na  // Buy-side liquidity
+var float ssl_level = na  // Sell-side liquidity
+var int bsl_count = 0
+var int ssl_count = 0
+
+// Detect equal highs (within small tolerance)
+tolerance = atr_value * 0.1
+equal_highs = show_liquidity and math.abs(high - high[1]) < tolerance and math.abs(high - high[2]) < tolerance
+equal_lows = show_liquidity and math.abs(low - low[1]) < tolerance and math.abs(low - low[2]) < tolerance
+
+if equal_highs and bsl_count < 5
+    bsl_level := high
+    bsl_count += 1
+    line.new(bar_index - 2, bsl_level, bar_index + 20, bsl_level, color=color.new(#ffcc00, 50), width=1, style=line.style_dotted)
+    label.new(bar_index, bsl_level, "BSL $$$", style=label.style_label_left, color=color.new(#ffcc00, 70), textcolor=color.white, size=size.tiny)
+
+if equal_lows and ssl_count < 5
+    ssl_level := low
+    ssl_count += 1
+    line.new(bar_index - 2, ssl_level, bar_index + 20, ssl_level, color=color.new(#ff6600, 50), width=1, style=line.style_dotted)
+    label.new(bar_index, ssl_level, "SSL $$$", style=label.style_label_left, color=color.new(#ff6600, 70), textcolor=color.white, size=size.tiny)
 
 // ═══════════════════════════════════════════════════════════════════
 // 🛡️ STOP LOSS - CALCUL AVEC SWING PIVOT
@@ -1047,3 +1392,55 @@ if show_dashboard and barstate.islast and not na(dash)
     
     int total_trades = active_longs + active_shorts
     table.cell(dash, 3, r, str.tostring(total_trades), text_color=color.white, bgcolor=color.new(color.purple, 50), text_size=size.small)
+    r += 1
+    
+    // 📊 ENHANCED METRICS
+    table.cell(dash, 0, r, "━━━━━━━━━", text_color=color.white, bgcolor=color.new(color.gray, 85))
+    table.cell(dash, 1, r, "━━━━━━━", text_color=color.white, bgcolor=color.new(color.gray, 85))
+    table.cell(dash, 2, r, "━━━━━━━", text_color=color.white, bgcolor=color.new(color.gray, 85))
+    table.cell(dash, 3, r, "━━", text_color=color.white, bgcolor=color.new(color.gray, 85))
+    r += 1
+    
+    // SMC Bias
+    string smc_bias = trend == 1 ? "Bullish ↑" : trend == -1 ? "Bearish ↓" : "Neutral ─"
+    color smc_color = trend == 1 ? color.new(color.green, 50) : trend == -1 ? color.new(color.red, 50) : color.new(color.gray, 60)
+    table.cell(dash, 0, r, "💡 SMC Bias", text_color=color.white)
+    table.cell(dash, 1, r, smc_bias, text_color=color.white, bgcolor=smc_color)
+    table.cell(dash, 2, r, smc_bias, text_color=color.white, bgcolor=smc_color)
+    table.cell(dash, 3, r, "", text_color=color.white)
+    r += 1
+    
+    // Distance to PDH/PDL
+    if not na(pdh) and not na(pdl)
+        dist_pdh = ((pdh - close) / close) * 100
+        dist_pdl = ((close - pdl) / close) * 100
+        table.cell(dash, 0, r, "📏 To PDH/PDL", text_color=color.white)
+        table.cell(dash, 1, r, str.tostring(dist_pdh, "#.##") + "%", text_color=color.white)
+        table.cell(dash, 2, r, str.tostring(dist_pdl, "#.##") + "%", text_color=color.white)
+        table.cell(dash, 3, r, "", text_color=color.white)
+        r += 1
+    
+    // Distance to VWAP
+    dist_vwap = ((close - vwap_value) / close) * 100
+    string vwap_position = close > vwap_value ? "Above ↑" : "Below ↓"
+    table.cell(dash, 0, r, "📍 VWAP Dist", text_color=color.white)
+    table.cell(dash, 1, r, str.tostring(math.abs(dist_vwap), "#.##") + "%", text_color=color.white)
+    table.cell(dash, 2, r, vwap_position, text_color=color.white)
+    table.cell(dash, 3, r, "", text_color=color.white)
+    r += 1
+    
+    // Current FVG status
+    fvg_status = bullish_fvg ? "Bull FVG ✅" : bearish_fvg ? "Bear FVG ✅" : "No FVG"
+    color fvg_bg = bullish_fvg ? color.new(color.green, 60) : bearish_fvg ? color.new(color.red, 60) : color.new(color.gray, 70)
+    table.cell(dash, 0, r, "🎯 FVG Now", text_color=color.white)
+    table.cell(dash, 1, r, fvg_status, text_color=color.white, bgcolor=fvg_bg)
+    table.cell(dash, 2, r, fvg_status, text_color=color.white, bgcolor=fvg_bg)
+    table.cell(dash, 3, r, "", text_color=color.white)
+    r += 1
+    
+    // Liquidity info
+    string liq_info = "Scanning"
+    table.cell(dash, 0, r, "💰 Liquidity", text_color=color.white)
+    table.cell(dash, 1, r, not na(bsl_level) ? "BSL $$$ ↑" : "─", text_color=color.white)
+    table.cell(dash, 2, r, not na(ssl_level) ? "SSL $$$ ↓" : "─", text_color=color.white)
+    table.cell(dash, 3, r, "", text_color=color.white)
