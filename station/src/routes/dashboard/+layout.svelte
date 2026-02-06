@@ -62,9 +62,13 @@
 	};
 
 	const navItems = [
-		{ path: '/dashboard/free', label: '🥓 Free Dashboard', plan: 'free' },
-		{ path: '/dashboard/indicator', label: '📊 Indicator', plan: 'indicator' },
+		{ path: '/dashboard', label: '🏠 Dashboard', plan: 'free' },
+		{ path: '/dashboard/markets', label: '🌍 Markets', plan: 'free' },
 		{ path: '/dashboard/scanner', label: '🔍 Scanner', plan: 'scanner' },
+		{ path: '/dashboard/risk', label: '⚠️ Risk', plan: 'scanner' },
+		{ path: '/dashboard/orderflow', label: '📊 Order Flow', plan: 'station' },
+		{ path: '/dashboard/auto-trade', label: '🤖 Auto-Trade', plan: 'station' },
+		{ path: '/dashboard/my-brokers', label: '🏦 Brokers', plan: 'station' },
 		{ path: '/dashboard/station', label: '🚀 Station', plan: 'station' }
 	];
 </script>
