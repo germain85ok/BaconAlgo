@@ -1,48 +1,54 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { getSupabaseClient } from '$lib/supabase/client';
+	import { authStore } from '$lib/stores/auth';
 	import GlassCard from '$lib/components/ui/GlassCard.svelte';
 
 	let email = $state('');
 	let username = $state('');
 	let password = $state('');
 	let confirmPassword = $state('');
-	let referralCode = $state('');
+	let promoCode = $state('');
 	let termsAccepted = $state(false);
 	let loading = $state(false);
 	let error = $state('');
 	let success = $state('');
+	let showPromoInfo = $state(false);
 
-	const supabase = getSupabaseClient();
+	// Liste des codes promo valides pour affichage d'aide
+	const validPromoCodes = [
+		{ code: 'ILOVEBACON-AND-TEA', description: 'Accès Station (illimité)' },
+		{ code: 'BACONALGO2040', description: 'Accès Station gratuit' },
+		{ code: 'PRO2040', description: 'Accès PRO gratuit' }
+	];
 
 	function validateForm() {
 		if (!email || !username || !password || !confirmPassword) {
-			error = 'Please fill in all required fields';
+			error = 'Veuillez remplir tous les champs obligatoires';
 			return false;
 		}
 
 		if (!email.includes('@')) {
-			error = 'Please enter a valid email address';
+			error = 'Veuillez entrer une adresse email valide';
 			return false;
 		}
 
 		if (username.length < 3) {
-			error = 'Username must be at least 3 characters long';
+			error = 'Le nom d\'utilisateur doit contenir au moins 3 caractères';
 			return false;
 		}
 
 		if (password.length < 8) {
-			error = 'Password must be at least 8 characters long';
+			error = 'Le mot de passe doit contenir au moins 8 caractères';
 			return false;
 		}
 
 		if (password !== confirmPassword) {
-			error = 'Passwords do not match';
+			error = 'Les mots de passe ne correspondent pas';
 			return false;
 		}
 
 		if (!termsAccepted) {
-			error = 'You must accept the Terms & Conditions';
+			error = 'Vous devez accepter les Conditions Générales';
 			return false;
 		}
 
@@ -57,25 +63,25 @@
 
 		loading = true;
 		try {
-			const { data, error: signUpError } = await supabase.auth.signUp({
-				email,
-				password,
-				options: {
-					data: {
-						username,
-						referral_code: referralCode || null
-					}
+			const result = await authStore.signUp(email, password, promoCode || undefined);
+
+			if (result.success) {
+				if (result.requiresEmailVerification) {
+					success = 'Compte créé ! Vérifiez votre email pour activer votre compte.';
+				} else {
+					success = 'Inscription réussie ! Redirection...';
 				}
-			});
-
-			if (signUpError) throw signUpError;
-
-			if (data.user) {
-				success = 'Account created! Please check your email to verify your account.';
-				setTimeout(() => goto('/login'), 3000);
+				
+				if (promoCode) {
+					success += ` Code promo "${promoCode}" appliqué avec succès !`;
+				}
+				
+				setTimeout(() => goto('/dashboard'), 3000);
+			} else {
+				error = result.error || 'Échec de l\'inscription';
 			}
 		} catch (e) {
-			error = e instanceof Error ? e.message : 'Registration failed';
+			error = e instanceof Error ? e.message : 'Échec de l\'inscription';
 		} finally {
 			loading = false;
 		}
@@ -83,46 +89,32 @@
 
 	async function handleGoogleRegister() {
 		if (!termsAccepted) {
-			error = 'You must accept the Terms & Conditions';
+			error = 'Vous devez accepter les Conditions Générales';
 			return;
 		}
 
 		error = '';
 		loading = true;
-		try {
-			const { error: signInError } = await supabase.auth.signInWithOAuth({
-				provider: 'google',
-				options: {
-					redirectTo: `${window.location.origin}/dashboard`
-				}
-			});
-
-			if (signInError) throw signInError;
-		} catch (e) {
-			error = e instanceof Error ? e.message : 'Google registration failed';
+		const result = await authStore.signInWithOAuth('google');
+		
+		if (!result.success) {
+			error = result.error || 'Échec de l\'inscription Google';
 			loading = false;
 		}
 	}
 
 	async function handleDiscordRegister() {
 		if (!termsAccepted) {
-			error = 'You must accept the Terms & Conditions';
+			error = 'Vous devez accepter les Conditions Générales';
 			return;
 		}
 
 		error = '';
 		loading = true;
-		try {
-			const { error: signInError } = await supabase.auth.signInWithOAuth({
-				provider: 'discord',
-				options: {
-					redirectTo: `${window.location.origin}/dashboard`
-				}
-			});
-
-			if (signInError) throw signInError;
-		} catch (e) {
-			error = e instanceof Error ? e.message : 'Discord registration failed';
+		const result = await authStore.signInWithOAuth('discord');
+		
+		if (!result.success) {
+			error = result.error || 'Échec de l\'inscription Discord';
 			loading = false;
 		}
 	}
@@ -222,16 +214,40 @@
 				</div>
 
 				<div>
-					<label for="referral" class="block text-text-primary text-sm font-semibold mb-2">
-						Referral Code (Optional)
-					</label>
+					<div class="flex items-center justify-between mb-2">
+						<label for="referral" class="block text-text-primary text-sm font-semibold">
+							Code Promo (Optionnel)
+						</label>
+						<button
+							type="button"
+							onclick={() => showPromoInfo = !showPromoInfo}
+							class="text-xs text-bacon-orange hover:text-bacon-orange/80 font-medium transition-colors"
+						>
+							{showPromoInfo ? 'Masquer' : 'Codes disponibles'}
+						</button>
+					</div>
 					<input
 						id="referral"
 						type="text"
-						bind:value={referralCode}
-						placeholder="BACON2024"
-						class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-text-secondary focus:outline-none focus:ring-2 focus:ring-bacon-orange/50 transition-all"
+						bind:value={promoCode}
+						placeholder="ILOVEBACON-AND-TEA"
+						class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-text-secondary focus:outline-none focus:ring-2 focus:ring-bacon-orange/50 transition-all uppercase"
 					/>
+					{#if showPromoInfo}
+						<div class="mt-3 p-4 bg-white/5 border border-white/10 rounded-lg">
+							<p class="text-xs text-text-secondary mb-3 font-semibold">Codes promo disponibles :</p>
+							<div class="space-y-2">
+								{#each validPromoCodes as { code, description }}
+									<div class="flex items-center justify-between text-sm">
+										<code class="px-2 py-1 bg-bacon-orange/10 text-bacon-orange rounded font-mono text-xs">
+											{code}
+										</code>
+										<span class="text-text-secondary text-xs ml-3">{description}</span>
+									</div>
+								{/each}
+							</div>
+						</div>
+					{/if}
 				</div>
 
 				<!-- Terms & Conditions -->
