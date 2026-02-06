@@ -80,20 +80,8 @@ ta = "0.5"  # Technical indicators library
 once_cell = "1.19"  # Lazy static alternative
 anyhow = "1.0"  # Error handling
 thiserror = "1.0"  # Custom error types
+rand = "0.8"  # Random number generation pour Monte Carlo
 
 [build-dependencies]
 rustc_version = "0.4"  # Détection de version Rust pour conditional compilation
-
-[profile.release]
-opt-level = 3  # Optimisation maximale
-lto = "fat"  # Link-time optimization aggressive
-codegen-units = 1  # Une seule unité de génération pour meilleures optimisations
-panic = "abort"  # Panic = abort (plus rapide)
-strip = true  # Strip symbols pour binary plus petit
-debug = false  # Pas de debug info
-overflow-checks = false  # Désactiver les checks d'overflow en release
-
-[profile.bench]
-inherits = "release"
-debug = true  # Garder les symbols pour profiling
 

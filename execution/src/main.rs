@@ -5,6 +5,8 @@ mod market;
 mod news;
 mod config;
 mod families;
+mod engine;  // Quantum engine module
+mod backtest;  // Backtest module
 
 use axum::{
     routing::{get, post},
