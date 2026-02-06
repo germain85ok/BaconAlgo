@@ -21,7 +21,7 @@
 	};
 
 	// Tier features from specification
-	$: tierFeatures = {
+	let tierFeatures = $derived({
 		FREE: [
 			$locale === 'fr' ? '3 signaux gratuits par jour' : '3 free signals per day',
 			$locale === 'fr' ? 'Accès au dashboard de base' : 'Basic dashboard access',
@@ -49,9 +49,9 @@
 			$locale === 'fr' ? 'Accès API' : 'API access',
 			$locale === 'fr' ? 'Support VIP' : 'VIP support'
 		]
-	};
+	});
 
-	$: tiers = [
+	let tiers = $derived([
 		{
 			name: 'FREE',
 			displayName: $locale === 'fr' ? 'Gratuit (Donation)' : 'Free (Donation)',
@@ -84,10 +84,10 @@
 			features: tierFeatures.STATION,
 			paypalButtonId: PAYPAL_BUTTONS.STATION
 		}
-	];
+	]);
 
 	// FAQ questions translated
-	$: faqs = $locale === 'fr' ? [
+	let faqs = $derived($locale === 'fr' ? [
 		{
 			question: 'Puis-je annuler mon abonnement à tout moment ?',
 			answer: 'Oui ! Vous pouvez annuler votre abonnement à tout moment depuis les paramètres de votre compte. Sans questions.'
@@ -129,7 +129,7 @@
 			question: 'Do you offer refunds?',
 			answer: 'We offer a 14-day money-back guarantee. If you\'re not satisfied, contact us for a full refund.'
 		}
-	];
+	]);
 
 	function getPrice(tier: typeof tiers[0]) {
 		const price = billingPeriod === 'yearly' ? tier.price.yearly : tier.price.monthly;
