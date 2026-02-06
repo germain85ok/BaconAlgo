@@ -1,7 +1,10 @@
 <script lang="ts">
+	import { t } from '$lib/i18n/i18n';
+	import LanguageToggle from './LanguageToggle.svelte';
+
 	interface Props {
 		isLoggedIn?: boolean;
-		user?: { name: string; email: string } | null;
+		user?: { name: string; email: string; is_admin?: boolean } | null;
 		onLogin?: () => void;
 		onRegister?: () => void;
 		onLogout?: () => void;
@@ -29,6 +32,9 @@
 	function closeMobileMenu() {
 		mobileMenuOpen = false;
 	}
+
+	// Check if user is admin (germain85@hotmail.com)
+	$: isAdmin = user?.email === 'germain85@hotmail.com' || user?.is_admin === true;
 </script>
 
 <nav class="sticky top-0 z-40 bg-bg-dark/80 backdrop-blur-md border-b border-white/10">
@@ -51,25 +57,44 @@
 					href="/"
 					class="text-text-secondary hover:text-text-primary transition-colors font-body"
 				>
-					Home
+					{$t.nav.home}
 				</a>
 				<a
 					href="/pricing"
 					class="text-text-secondary hover:text-text-primary transition-colors font-body"
 				>
-					Pricing
+					{$t.nav.pricing}
 				</a>
 				<a
 					href="/academy"
 					class="text-text-secondary hover:text-text-primary transition-colors font-body"
 				>
-					Academy
+					{$t.nav.academy}
 				</a>
+				{#if isLoggedIn && user}
+					<a
+						href="/dashboard"
+						class="text-text-secondary hover:text-text-primary transition-colors font-body"
+					>
+						{$t.nav.dashboard}
+					</a>
+				{/if}
 			</div>
 
 			<!-- Desktop Auth/User Menu -->
 			<div class="hidden md:flex md:items-center md:space-x-4">
+				<LanguageToggle />
+				
 				{#if isLoggedIn && user}
+					{#if isAdmin}
+						<a
+							href="/admin"
+							class="px-3 py-1.5 rounded-lg bg-gradient-to-r from-bacon-orange to-bacon-red text-white font-semibold text-sm hover:shadow-lg hover:shadow-bacon-orange/30 transition-all"
+						>
+							{$t.admin.badge}
+						</a>
+					{/if}
+					
 					<div class="relative">
 						<button
 							onclick={toggleUserMenu}
@@ -103,19 +128,27 @@
 									href="/dashboard"
 									class="block px-4 py-2 text-text-secondary hover:bg-white/5 hover:text-text-primary transition-colors"
 								>
-									Dashboard
+									{$t.nav.dashboard}
 								</a>
 								<a
 									href="/profile"
 									class="block px-4 py-2 text-text-secondary hover:bg-white/5 hover:text-text-primary transition-colors"
 								>
-									Profile
+									{$t.nav.profile}
 								</a>
+								{#if isAdmin}
+									<a
+										href="/admin"
+										class="block px-4 py-2 text-text-secondary hover:bg-white/5 hover:text-text-primary transition-colors"
+									>
+										{$t.nav.admin}
+									</a>
+								{/if}
 								<button
 									onclick={onLogout}
 									class="block w-full text-left px-4 py-2 text-bacon-red hover:bg-white/5 transition-colors"
 								>
-									Logout
+									{$t.nav.logout}
 								</button>
 							</div>
 						{/if}
@@ -125,13 +158,13 @@
 						onclick={onLogin}
 						class="px-4 py-2 text-text-primary hover:text-bacon-orange transition-colors font-body"
 					>
-						Login
+						{$t.nav.login}
 					</button>
 					<button
 						onclick={onRegister}
 						class="px-6 py-2 bg-gradient-to-r from-bacon-orange to-bacon-red text-white rounded-lg hover:shadow-lg hover:shadow-bacon-orange/30 transition-all font-body font-semibold"
 					>
-						Register
+						{$t.nav.register}
 					</button>
 				{/if}
 			</div>
@@ -171,26 +204,30 @@
 	{#if mobileMenuOpen}
 		<div class="md:hidden bg-bg-dark/95 backdrop-blur-md border-t border-white/10">
 			<div class="px-2 pt-2 pb-3 space-y-1">
+				<div class="px-3 py-2 flex justify-center">
+					<LanguageToggle />
+				</div>
+				
 				<a
 					href="/"
 					onclick={closeMobileMenu}
 					class="block px-3 py-2 text-text-secondary hover:bg-white/5 hover:text-text-primary rounded-lg transition-colors"
 				>
-					Home
+					{$t.nav.home}
 				</a>
 				<a
 					href="/pricing"
 					onclick={closeMobileMenu}
 					class="block px-3 py-2 text-text-secondary hover:bg-white/5 hover:text-text-primary rounded-lg transition-colors"
 				>
-					Pricing
+					{$t.nav.pricing}
 				</a>
 				<a
 					href="/academy"
 					onclick={closeMobileMenu}
 					class="block px-3 py-2 text-text-secondary hover:bg-white/5 hover:text-text-primary rounded-lg transition-colors"
 				>
-					Academy
+					{$t.nav.academy}
 				</a>
 
 				{#if isLoggedIn && user}
@@ -200,15 +237,24 @@
 							onclick={closeMobileMenu}
 							class="block px-3 py-2 text-text-secondary hover:bg-white/5 hover:text-text-primary rounded-lg transition-colors"
 						>
-							Dashboard
+							{$t.nav.dashboard}
 						</a>
 						<a
 							href="/profile"
 							onclick={closeMobileMenu}
 							class="block px-3 py-2 text-text-secondary hover:bg-white/5 hover:text-text-primary rounded-lg transition-colors"
 						>
-							Profile
+							{$t.nav.profile}
 						</a>
+						{#if isAdmin}
+							<a
+								href="/admin"
+								onclick={closeMobileMenu}
+								class="block px-3 py-2 text-text-secondary hover:bg-white/5 hover:text-text-primary rounded-lg transition-colors"
+							>
+								{$t.nav.admin} 🥓
+							</a>
+						{/if}
 						<button
 							onclick={() => {
 								onLogout();
@@ -216,7 +262,7 @@
 							}}
 							class="block w-full text-left px-3 py-2 text-bacon-red hover:bg-white/5 rounded-lg transition-colors"
 						>
-							Logout
+							{$t.nav.logout}
 						</button>
 					</div>
 				{:else}
@@ -228,7 +274,7 @@
 							}}
 							class="block w-full px-3 py-2 text-text-primary hover:bg-white/5 rounded-lg transition-colors text-left"
 						>
-							Login
+							{$t.nav.login}
 						</button>
 						<button
 							onclick={() => {
@@ -237,7 +283,7 @@
 							}}
 							class="block w-full px-3 py-2 bg-gradient-to-r from-bacon-orange to-bacon-red text-white rounded-lg hover:shadow-lg hover:shadow-bacon-orange/30 transition-all font-semibold"
 						>
-							Register
+							{$t.nav.register}
 						</button>
 					</div>
 				{/if}

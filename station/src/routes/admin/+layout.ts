@@ -23,8 +23,10 @@ export const load: LayoutLoad = async ({ url }) => {
 		throw redirect(303, '/login');
 	}
 
-	// Admin guard - only admins can access
-	if (!profile.is_admin) {
+	// Admin guard - only admins can access (is_admin flag OR specific email)
+	const isAdmin = profile.is_admin || profile.email === 'germain85@hotmail.com';
+	
+	if (!isAdmin) {
 		throw redirect(303, '/dashboard');
 	}
 
