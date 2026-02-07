@@ -256,7 +256,7 @@ impl MarketDataProvider for YahooFinanceProvider {
 
     async fn get_bulk_quotes(&self, symbols: &[String]) -> Result<Vec<Quote>, ProviderError> {
         // Yahoo Finance doesn't have a bulk endpoint, so fetch individually
-        // but with a small delay to avoid rate limiting
+        // Rate limit: ~2000 req/hr = 1 req every 1.8 seconds, using 2000ms for safety
         let mut quotes = Vec::new();
         
         for symbol in symbols {
@@ -267,8 +267,8 @@ impl MarketDataProvider for YahooFinanceProvider {
                 }
             }
             
-            // Small delay to avoid rate limiting (2000 req/hr ≈ 1 req every 2 seconds)
-            tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+            // Delay to stay within rate limits: 2000 requests/hour ≈ 1 request every 2 seconds
+            tokio::time::sleep(tokio::time::Duration::from_millis(2000)).await;
         }
         
         Ok(quotes)

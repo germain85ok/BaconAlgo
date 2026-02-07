@@ -95,7 +95,6 @@ impl SymbolUniverse {
     /// NASDAQ 100 top components
     pub fn nasdaq100() -> Vec<SymbolMetadata> {
         let symbols = vec![
-            ("QQQ", "Invesco QQQ Trust", "Technology"),
             ("TSLA", "Tesla Inc", "Consumer Cyclical"),
             ("GOOG", "Alphabet Inc Class C", "Technology"),
             ("AMGN", "Amgen Inc", "Healthcare"),
@@ -122,16 +121,16 @@ impl SymbolUniverse {
     /// Dow Jones 30 components
     pub fn dow30() -> Vec<SymbolMetadata> {
         let symbols = vec![
-            ("AAPL", "Apple Inc", "Technology"),
-            ("MSFT", "Microsoft Corp", "Technology"),
             ("UNH", "UnitedHealth Group", "Healthcare"),
             ("GS", "Goldman Sachs", "Financial"),
-            ("HD", "Home Depot", "Consumer Cyclical"),
             ("CAT", "Caterpillar", "Industrials"),
-            ("MCD", "McDonald's", "Consumer Cyclical"),
-            ("V", "Visa", "Financial"),
             ("BA", "Boeing", "Industrials"),
-            ("JPM", "JPMorgan Chase", "Financial"),
+            ("AMZN", "Amazon.com", "Consumer Cyclical"),
+            ("WMT", "Walmart", "Consumer Defensive"),
+            ("CRM", "Salesforce", "Technology"),
+            ("IBM", "IBM", "Technology"),
+            ("DIS", "Walt Disney", "Communication Services"),
+            ("NKE", "Nike", "Consumer Cyclical"),
         ];
 
         symbols

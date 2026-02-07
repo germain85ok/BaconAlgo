@@ -106,7 +106,7 @@ async fn main() {
         .allow_origin(
             CONFIG.cors_origins
                 .iter()
-                .map(|origin: &String| origin.parse().unwrap())
+                .filter_map(|origin: &String| origin.parse().ok())
                 .collect::<Vec<_>>()
         )
         .allow_methods([Method::GET, Method::POST, Method::OPTIONS])

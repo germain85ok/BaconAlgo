@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use dashmap::DashMap;
 use crate::config::CONFIG;
-use crate::market::universe::MarketType;
+use crate::market::universe::SymbolUniverse;
 use super::providers::{
     MarketDataProvider, Candle, Quote, ProviderError,
     yahoo::YahooFinanceProvider,
@@ -105,13 +105,11 @@ impl ProviderManager {
         }
     }
 
-    /// Determine if a symbol is a crypto pair
+    /// Determine if a symbol is a crypto pair based on universe lookup
     fn is_crypto_symbol(symbol: &str) -> bool {
-        symbol.ends_with("USDT") || 
-        symbol.ends_with("BUSD") || 
-        symbol.ends_with("USD") ||
-        symbol.contains("BTC") ||
-        symbol.contains("ETH")
+        // Check against known crypto symbols from universe
+        let crypto_symbols = SymbolUniverse::crypto_symbols();
+        crypto_symbols.contains(&symbol.to_string())
     }
 
     /// Get a quote for a symbol with caching
