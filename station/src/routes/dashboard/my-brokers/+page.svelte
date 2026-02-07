@@ -169,7 +169,7 @@
 <!-- Add Broker Modal -->
 {#if showAddModal}
 	<div class="modal-overlay" role="button" tabindex="-1" onclick={() => showAddModal = false} onkeydown={(e) => e.key === 'Escape' && (showAddModal = false)}>
-		<div class="modal" role="dialog" aria-modal="true" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
+		<div class="modal" role="dialog" aria-modal="true" tabindex="0" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
 			<h2>Add Broker</h2>
 			
 			<div class="form-group">

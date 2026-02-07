@@ -114,14 +114,15 @@
 		<h2 class="section-title">⚙️ Configuration</h2>
 		<div class="config-grid">
 			<div class="config-card">
-				<label class="label">Broker</label>
-				<select bind:value={selectedBroker} class="select">
-					<option value="">Select Broker</option>
-					<option value="alpaca">Alpaca</option>
-					<option value="ib">Interactive Brokers</option>
-					<option value="questrade">Questrade</option>
-					<option value="bitget">Bitget</option>
-				</select>
+				<label class="label">Broker
+					<select bind:value={selectedBroker} class="select">
+						<option value="">Select Broker</option>
+						<option value="alpaca">Alpaca</option>
+						<option value="ib">Interactive Brokers</option>
+						<option value="questrade">Questrade</option>
+						<option value="bitget">Bitget</option>
+					</select>
+				</label>
 			</div>
 
 			<div class="config-card">
