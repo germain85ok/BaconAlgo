@@ -5,8 +5,11 @@ export default defineConfig({
   plugins: [sveltekit()],
   server: {
     proxy: {
-      '/signals': { target: 'http://localhost:3000', changeOrigin: true },
-      '/news': { target: 'http://localhost:3000', changeOrigin: true }
+      '/api': { target: 'http://localhost:8080', changeOrigin: true },
+      '/signals': { target: 'http://localhost:8080', changeOrigin: true },
+      '/news': { target: 'http://localhost:8080', changeOrigin: true },
+      '/ws': { target: 'http://localhost:8080', changeOrigin: true, ws: true },
+      '/sse': { target: 'http://localhost:8080', changeOrigin: true }
     }
   }
 });
