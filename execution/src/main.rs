@@ -16,6 +16,7 @@ use axum::{
     http::{header, Method},
 };
 use std::net::SocketAddr;
+use std::sync::Arc;
 use tower::ServiceBuilder;
 use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
@@ -32,6 +33,7 @@ use api::{
 use bus::SignalBus;
 use config::CONFIG;
 use scanner::Scanner;
+use market::ProviderManager;
 
 #[tokio::main]
 async fn main() {
@@ -55,11 +57,18 @@ async fn main() {
     // Create signal bus with capacity for 256 messages
     let bus = SignalBus::<LiveSignal>::new(256);
 
+    // Create provider manager for real market data
+    let provider_manager = Arc::new(ProviderManager::new());
+    tracing::info!("✅ Provider manager initialized");
+
     // Start scanner in background
     let scanner_bus = bus.clone();
+    let scanner_provider = provider_manager.clone();
     tokio::spawn(async move {
-        let scanner = Scanner::new(scanner_bus.sender());
-        // TODO: Add indicators to scanner
+        let mut scanner = Scanner::new(scanner_bus.sender(), scanner_provider);
+        
+        // Add real indicators to scanner
+        // For now, we run without indicators - they can be added later
         // scanner.add_indicator(Arc::new(SomeIndicator::new()));
         
         scanner.run().await;

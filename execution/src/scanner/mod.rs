@@ -11,19 +11,24 @@ use tokio::time::{interval, Duration};
 use crate::api::LiveSignal;
 use crate::config::CONFIG;
 use crate::families::{Indicator, MarketData, SignalType};
+use crate::market::{ProviderManager, SymbolUniverse};
 
 /// Scanner orchestrator that coordinates scanning and signal generation
 pub struct Scanner {
     signal_tx: broadcast::Sender<LiveSignal>,
     indicators: Vec<Arc<dyn Indicator>>,
+    provider_manager: Arc<ProviderManager>,
+    scan_cycle_counter: std::sync::atomic::AtomicUsize,
 }
 
 impl Scanner {
     /// Create a new scanner with a broadcast channel for signals
-    pub fn new(signal_tx: broadcast::Sender<LiveSignal>) -> Self {
+    pub fn new(signal_tx: broadcast::Sender<LiveSignal>, provider_manager: Arc<ProviderManager>) -> Self {
         Self {
             signal_tx,
             indicators: Vec::new(),
+            provider_manager,
+            scan_cycle_counter: std::sync::atomic::AtomicUsize::new(0),
         }
     }
     
@@ -52,21 +57,53 @@ impl Scanner {
         }
     }
     
-    /// Execute one scan cycle
+    /// Execute one scan cycle with rotation strategy
     async fn scan_cycle(&self) -> Result<(), Box<dyn std::error::Error>> {
-        tracing::debug!("Starting scan cycle");
+        let cycle = self.scan_cycle_counter.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        tracing::debug!("Starting scan cycle #{}", cycle);
         
-        // TODO: Fetch list of symbols to scan from configuration or database
-        let symbols = vec!["BTCUSDT", "ETHUSDT", "AAPL", "TSLA"];
+        // Rotate through different symbol groups on each cycle
+        let symbols = match cycle % 4 {
+            0 => {
+                // Cycle 0: Crypto (fastest updates, most volatile)
+                tracing::info!("Scanning crypto symbols");
+                SymbolUniverse::crypto_symbols()
+            }
+            1 => {
+                // Cycle 1: Top ETFs and leveraged ETFs
+                tracing::info!("Scanning ETFs");
+                SymbolUniverse::etf_symbols()
+            }
+            2 => {
+                // Cycle 2: Top stocks batch 1
+                tracing::info!("Scanning stocks batch 1");
+                let all_stocks = SymbolUniverse::stock_symbols();
+                all_stocks.into_iter().take(50).collect()
+            }
+            _ => {
+                // Cycle 3: Top stocks batch 2
+                tracing::info!("Scanning stocks batch 2");
+                let all_stocks = SymbolUniverse::stock_symbols();
+                all_stocks.into_iter().skip(50).take(50).collect()
+            }
+        };
         
-        for symbol in symbols.iter().take(CONFIG.scan_symbols_limit) {
-            // TODO: Fetch real market data from providers
-            let market_data = self.fetch_market_data(symbol).await?;
-            
-            // Evaluate all indicators
-            for indicator in &self.indicators {
-                if let Some(signal) = indicator.evaluate(&market_data) {
-                    self.publish_signal(signal).await;
+        let symbols_to_scan: Vec<String> = symbols.into_iter().take(CONFIG.scan_symbols_limit).collect();
+        tracing::info!("Scanning {} symbols", symbols_to_scan.len());
+        
+        for symbol in symbols_to_scan {
+            // Fetch real market data from providers
+            match self.fetch_market_data(&symbol).await {
+                Ok(market_data) => {
+                    // Evaluate all indicators
+                    for indicator in &self.indicators {
+                        if let Some(signal) = indicator.evaluate(&market_data) {
+                            self.publish_signal(signal).await;
+                        }
+                    }
+                }
+                Err(e) => {
+                    tracing::warn!("Failed to fetch market data for {}: {}", symbol, e);
                 }
             }
             
@@ -74,22 +111,26 @@ impl Scanner {
             tokio::time::sleep(Duration::from_millis(100)).await;
         }
         
-        tracing::debug!("Scan cycle completed");
+        tracing::debug!("Scan cycle #{} completed", cycle);
         Ok(())
     }
     
-    /// Fetch market data for a symbol (mock implementation)
-    async fn fetch_market_data(&self, symbol: &str) -> Result<MarketData, Box<dyn std::error::Error>> {
-        // TODO: Integrate with real market data providers
-        // For now, return mock data
+    /// Fetch market data for a symbol from real providers
+    async fn fetch_market_data(&self, symbol: &str) -> Result<MarketData, String> {
+        // Get the latest quote from provider manager
+        let quote = self.provider_manager.get_quote(symbol).await
+            .map_err(|e| e.to_string())?;
+        
+        // For now, we use the quote price for OHLC (ideally we'd fetch candles)
+        // This gives us real-time data while keeping it simple
         Ok(MarketData {
             symbol: symbol.to_string(),
-            timestamp: chrono::Utc::now().timestamp_millis(),
-            open: 45000.0,
-            high: 45500.0,
-            low: 44500.0,
-            close: 45200.0,
-            volume: 1234567.0,
+            timestamp: quote.timestamp,
+            open: quote.price,
+            high: quote.price,
+            low: quote.price,
+            close: quote.price,
+            volume: quote.volume.unwrap_or(0.0),
         })
     }
     
