@@ -82,10 +82,11 @@ async function cacheFirst(request: Request, cacheName: string): Promise<Response
 async function staleWhileRevalidate(request: Request, cacheName: string): Promise<Response> {
 	const cached = await caches.match(request);
 
-	const fetchPromise = fetch(request).then((response) => {
+	const fetchPromise = fetch(request).then(async (response) => {
 		if (response.ok) {
-			const cache = caches.open(cacheName);
-			cache.then((c) => c.put(request, response.clone()));
+			const responseToCache = response.clone();
+			const cache = await caches.open(cacheName);
+			await cache.put(request, responseToCache);
 		}
 		return response;
 	});
