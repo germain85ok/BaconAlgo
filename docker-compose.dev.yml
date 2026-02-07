@@ -1,0 +1,48 @@
+version: '3.8'
+
+# =============================================================================
+# 🥓 BACONALGO — DEVELOPMENT ENVIRONMENT
+# =============================================================================
+# Lightweight dev setup for local development
+# Backend and frontend run natively (cargo run, pnpm dev)
+# This only provides database and cache services
+# =============================================================================
+
+services:
+  # =============================================================================
+  # 🗄️ POSTGRES — PostgreSQL 16 (Development)
+  # =============================================================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: baconalgo-dev-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-baconalgo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bacon2030}
+      POSTGRES_DB: ${POSTGRES_DB:-baconalgo}
+    volumes:
+      - postgres_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U baconalgo"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # =============================================================================
+  # ⚡ REDIS — Redis 7 (Development)
+  # =============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: baconalgo-dev-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_dev:
