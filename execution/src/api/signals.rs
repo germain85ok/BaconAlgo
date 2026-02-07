@@ -6,29 +6,23 @@ use axum::{
 use serde_json::json;
 use tokio_stream::{wrappers::BroadcastStream, StreamExt};
 use std::convert::Infallible;
+use std::sync::Arc;
+use tokio::sync::RwLock;
 
 use crate::bus::SignalBus;
 use crate::api::models::LiveSignal;
 
 /// GET /api/signals - Get latest signals
 pub async fn get_signals(
-    State(_bus): State<SignalBus<LiveSignal>>,
+    State(signal_buffer): State<Arc<RwLock<Vec<LiveSignal>>>>,
 ) -> impl IntoResponse {
-    // For now, return a placeholder - in production this would query from database
-    let signals = vec![
-        LiveSignal {
-            symbol: "BTCUSDT".to_string(),
-            horizon: "M15".to_string(),
-            ready: true,
-            tags: json!({"close": 45000.0}),
-            reason: "Golden pocket alignment".to_string(),
-            ts_unix_ms: chrono::Utc::now().timestamp_millis(),
-        },
-    ];
+    // Read from the shared signal buffer
+    let signals = signal_buffer.read().await;
+    let signal_list: Vec<LiveSignal> = signals.clone();
     
     (StatusCode::OK, Json(json!({
-        "signals": signals,
-        "count": signals.len(),
+        "signals": signal_list,
+        "count": signal_list.len(),
         "timestamp": chrono::Utc::now().to_rfc3339(),
     })))
 }

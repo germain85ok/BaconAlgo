@@ -125,27 +125,31 @@
 			</div>
 
 			<div class="config-card">
-				<label class="label">Max Position Size</label>
-				<input type="number" bind:value={maxPositionSize} class="input" />
+				<label class="label">Max Position Size
+					<input type="number" bind:value={maxPositionSize} class="input" />
+				</label>
 				<span class="help-text">Maximum $ per position</span>
 			</div>
 
 			<div class="config-card">
-				<label class="label">Max Daily Loss</label>
-				<input type="number" bind:value={maxDailyLoss} class="input" />
+				<label class="label">Max Daily Loss
+					<input type="number" bind:value={maxDailyLoss} class="input" />
+				</label>
 				<span class="help-text">Stop trading after this loss</span>
 			</div>
 
 			<div class="config-card">
-				<label class="label">Min Signal Score</label>
-				<input type="number" bind:value={minSignalScore} min="0" max="100" class="input" />
+				<label class="label">Min Signal Score
+					<input type="number" bind:value={minSignalScore} min="0" max="100" class="input" />
+				</label>
 				<span class="help-text">Only trade signals above this score</span>
 			</div>
 		</div>
 
 		<div class="config-card full-width">
-			<label class="label">Allowed Symbols (comma-separated)</label>
-			<input type="text" bind:value={allowedSymbols} class="input" placeholder="SPY,QQQ,NVDA,TSLA" />
+			<label class="label">Allowed Symbols (comma-separated)
+				<input type="text" bind:value={allowedSymbols} class="input" placeholder="SPY,QQQ,NVDA,TSLA" />
+			</label>
 			<span class="help-text">Only trade these symbols</span>
 		</div>
 

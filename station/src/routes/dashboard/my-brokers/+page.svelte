@@ -168,28 +168,31 @@
 
 <!-- Add Broker Modal -->
 {#if showAddModal}
-	<div class="modal-overlay" onclick={() => showAddModal = false}>
-		<div class="modal" onclick={(e) => e.stopPropagation()}>
+	<div class="modal-overlay" role="button" tabindex="-1" onclick={() => showAddModal = false} onkeydown={(e) => e.key === 'Escape' && (showAddModal = false)}>
+		<div class="modal" role="dialog" aria-modal="true" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
 			<h2>Add Broker</h2>
 			
 			<div class="form-group">
-				<label>Broker</label>
-				<select bind:value={selectedBrokerType} class="select">
-					<option value="alpaca">Alpaca</option>
-					<option value="ib">Interactive Brokers</option>
-					<option value="questrade">Questrade</option>
-					<option value="bitget">Bitget</option>
-				</select>
+				<label>Broker
+					<select bind:value={selectedBrokerType} class="select">
+						<option value="alpaca">Alpaca</option>
+						<option value="ib">Interactive Brokers</option>
+						<option value="questrade">Questrade</option>
+						<option value="bitget">Bitget</option>
+					</select>
+				</label>
 			</div>
 
 			<div class="form-group">
-				<label>API Key</label>
-				<input type="text" bind:value={apiKey} class="input" placeholder="Enter your API key" />
+				<label>API Key
+					<input type="text" bind:value={apiKey} class="input" placeholder="Enter your API key" />
+				</label>
 			</div>
 
 			<div class="form-group">
-				<label>API Secret</label>
-				<input type="password" bind:value={apiSecret} class="input" placeholder="Enter your API secret" />
+				<label>API Secret
+					<input type="password" bind:value={apiSecret} class="input" placeholder="Enter your API secret" />
+				</label>
 			</div>
 
 			<div class="form-group">

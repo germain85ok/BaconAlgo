@@ -155,14 +155,16 @@
 				</select>
 			</div>
 			<div class="filter-item locked">
-				<label>Horizon <span class="lock-icon">🔒</span></label>
-				<select disabled>
-					<option>Unlock with Indicator plan</option>
-				</select>
+				<label>Horizon <span class="lock-icon">🔒</span>
+					<select disabled>
+						<option>Unlock with Indicator plan</option>
+					</select>
+				</label>
 			</div>
 			<div class="filter-item locked">
-				<label>Min Score <span class="lock-icon">🔒</span></label>
-				<input type="range" disabled />
+				<label>Min Score <span class="lock-icon">🔒</span>
+					<input type="range" disabled />
+				</label>
 			</div>
 		</div>
 	</div>
