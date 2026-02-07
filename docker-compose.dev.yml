@@ -18,9 +18,9 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_USER: baconalgo
-      POSTGRES_PASSWORD: bacon2030
-      POSTGRES_DB: baconalgo
+      POSTGRES_USER: ${POSTGRES_USER:-baconalgo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bacon2030}
+      POSTGRES_DB: ${POSTGRES_DB:-baconalgo}
     volumes:
       - postgres_dev:/var/lib/postgresql/data
     healthcheck:
