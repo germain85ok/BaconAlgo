@@ -28,12 +28,33 @@ use api::{
     market::{get_fear_greed_index, get_vix, get_movers},
     news::get_news,
     get_performance_metrics,
+    get_chart_data,
     LiveSignal,
 };
 use bus::SignalBus;
 use config::CONFIG;
 use scanner::Scanner;
 use market::ProviderManager;
+
+/// Shared application state
+#[derive(Clone)]
+struct AppState {
+    bus: SignalBus<LiveSignal>,
+    provider_manager: Arc<ProviderManager>,
+}
+
+// Implement FromRef to allow individual state extractors
+impl axum::extract::FromRef<AppState> for SignalBus<LiveSignal> {
+    fn from_ref(state: &AppState) -> Self {
+        state.bus.clone()
+    }
+}
+
+impl axum::extract::FromRef<AppState> for Arc<ProviderManager> {
+    fn from_ref(state: &AppState) -> Self {
+        state.provider_manager.clone()
+    }
+}
 
 #[tokio::main]
 async fn main() {
@@ -61,6 +82,12 @@ async fn main() {
     let provider_manager = Arc::new(ProviderManager::new());
     tracing::info!("✅ Provider manager initialized");
 
+    // Create app state
+    let app_state = AppState {
+        bus: bus.clone(),
+        provider_manager: provider_manager.clone(),
+    };
+
     // Start scanner in background
     let scanner_bus = bus.clone();
     let scanner_provider = provider_manager.clone();
@@ -79,7 +106,7 @@ async fn main() {
         .allow_origin(
             CONFIG.cors_origins
                 .iter()
-                .map(|origin| origin.parse().unwrap())
+                .map(|origin: &String| origin.parse().unwrap())
                 .collect::<Vec<_>>()
         )
         .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
@@ -102,6 +129,9 @@ async fn main() {
         .route("/api/market/vix", get(get_vix))
         .route("/api/market/movers", get(get_movers))
         
+        // Chart endpoint
+        .route("/api/chart/:symbol", get(get_chart_data))
+        
         // News endpoint
         .route("/api/news", get(get_news))
         
@@ -111,7 +141,7 @@ async fn main() {
         // Manual scan trigger
         .route("/api/scan", post(trigger_scan))
         
-        .with_state(bus)
+        .with_state(app_state)
         .layer(
             ServiceBuilder::new()
                 .layer(TraceLayer::new_for_http())

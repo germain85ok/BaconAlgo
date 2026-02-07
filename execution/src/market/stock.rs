@@ -9,6 +9,9 @@ pub struct StockAdapter {
 #[async_trait]
 impl MarketAdapter for StockAdapter {
     async fn next_candle(&mut self) -> Option<Candle> {
+        // TODO: Integrate with ProviderManager to get real stock data
+        // For now, return mock data but this should be updated
+        // to fetch from Yahoo Finance via the provider manager
         Some(Candle {
             symbol: self.symbol.clone(),
             tf: Timeframe::M15,
