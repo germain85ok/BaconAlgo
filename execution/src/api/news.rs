@@ -38,8 +38,11 @@ pub async fn get_news() -> impl IntoResponse {
                                     "source": item.source,
                                     "url": item.url,
                                     "timestamp": chrono::DateTime::from_timestamp(item.datetime, 0)
-                                        .unwrap_or_else(|| chrono::Utc::now())
-                                        .to_rfc3339(),
+                                        .map(|dt| dt.to_rfc3339())
+                                        .unwrap_or_else(|| {
+                                            tracing::warn!("Invalid timestamp {} for news item {}, using current time", item.datetime, item.id);
+                                            chrono::Utc::now().to_rfc3339()
+                                        }),
                                     "image": item.image,
                                     "symbols": item.related.split(',').map(|s| s.trim().to_string()).collect::<Vec<_>>()
                                 })

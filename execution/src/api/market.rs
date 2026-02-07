@@ -80,23 +80,18 @@ pub async fn get_vix() -> impl IntoResponse {
 
 /// GET /api/market/movers - Top movers (gainers/losers)
 pub async fn get_movers() -> impl IntoResponse {
-    // Simplified approach: fetch quotes for popular symbols and sort by change percent
-    let symbols = vec!["AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "TSLA", "META", "AMD", "NFLX", "AVGO"];
+    // Note: Real-time movers data requires a paid market data API subscription
+    // Popular providers: Yahoo Finance, Alpha Vantage, Polygon.io, IEX Cloud
+    // This placeholder response indicates the feature is available but needs configuration
     
-    // For now, return a basic structure since Yahoo Finance API requires more complex handling
-    // In production, you would fetch from a real quote API
-    tracing::info!("Movers requested - returning popular symbols");
+    tracing::info!("Movers requested - API subscription required for real data");
     
     (StatusCode::OK, Json(json!({
-        "gainers": [
-            {
-                "symbol": "Popular symbols",
-                "note": "Movers data requires real-time quote API subscription"
-            }
-        ],
+        "gainers": [],
         "losers": [],
         "timestamp": chrono::Utc::now().to_rfc3339(),
-        "source": "placeholder",
-        "available_symbols": symbols
+        "source": "unavailable",
+        "message": "Market movers data requires a real-time quote API subscription",
+        "supported_providers": ["Yahoo Finance", "Alpha Vantage", "Polygon.io", "IEX Cloud"]
     })))
 }
