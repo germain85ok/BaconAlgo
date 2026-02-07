@@ -2,47 +2,74 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Json},
 };
+use serde::Deserialize;
 use serde_json::json;
+use std::env;
+
+#[derive(Debug, Deserialize)]
+struct FinnhubNews {
+    category: String,
+    datetime: i64,
+    headline: String,
+    id: i64,
+    image: String,
+    related: String,
+    source: String,
+    summary: String,
+    url: String,
+}
 
 /// GET /api/news - Latest market news
 pub async fn get_news() -> impl IntoResponse {
-    // TODO: Integrate with real news API (Finnhub, Alpha Vantage, etc.)
-    // For now, return mock data
-    (StatusCode::OK, Json(json!({
-        "news": [
-            {
-                "id": "1",
-                "headline": "Fed signals potential rate cuts in 2024",
-                "summary": "Federal Reserve indicates possible interest rate reductions...",
-                "source": "Reuters",
-                "url": "https://example.com/news/1",
-                "timestamp": chrono::Utc::now().to_rfc3339(),
-                "sentiment": "neutral",
-                "symbols": ["SPY", "QQQ"]
-            },
-            {
-                "id": "2",
-                "headline": "Tech stocks rally on strong earnings",
-                "summary": "Major technology companies beat Q4 expectations...",
-                "source": "Bloomberg",
-                "url": "https://example.com/news/2",
-                "timestamp": chrono::Utc::now().to_rfc3339(),
-                "sentiment": "positive",
-                "symbols": ["AAPL", "MSFT", "GOOGL"]
-            },
-            {
-                "id": "3",
-                "headline": "Bitcoin reaches new yearly high",
-                "summary": "Cryptocurrency market sees renewed investor interest...",
-                "source": "CoinDesk",
-                "url": "https://example.com/news/3",
-                "timestamp": chrono::Utc::now().to_rfc3339(),
-                "sentiment": "positive",
-                "symbols": ["BTCUSD"]
+    // Try to get Finnhub API key from environment
+    if let Ok(api_key) = env::var("FINNHUB_KEY") {
+        if !api_key.is_empty() {
+            let url = format!("https://finnhub.io/api/v1/news?category=general&token={}", api_key);
+            
+            match reqwest::get(&url).await {
+                Ok(response) => {
+                    match response.json::<Vec<FinnhubNews>>().await {
+                        Ok(news_items) => {
+                            let formatted_news: Vec<_> = news_items.iter().take(10).map(|item| {
+                                json!({
+                                    "id": item.id.to_string(),
+                                    "headline": item.headline,
+                                    "summary": item.summary,
+                                    "source": item.source,
+                                    "url": item.url,
+                                    "timestamp": chrono::DateTime::from_timestamp(item.datetime, 0)
+                                        .unwrap_or_else(|| chrono::Utc::now())
+                                        .to_rfc3339(),
+                                    "image": item.image,
+                                    "symbols": item.related.split(',').map(|s| s.trim().to_string()).collect::<Vec<_>>()
+                                })
+                            }).collect();
+                            
+                            return (StatusCode::OK, Json(json!({
+                                "news": formatted_news,
+                                "count": formatted_news.len(),
+                                "timestamp": chrono::Utc::now().to_rfc3339(),
+                                "source": "finnhub"
+                            })));
+                        }
+                        Err(e) => {
+                            tracing::warn!("Failed to parse Finnhub news: {}", e);
+                        }
+                    }
+                }
+                Err(e) => {
+                    tracing::warn!("Failed to fetch from Finnhub: {}", e);
+                }
             }
-        ],
-        "count": 3,
+        }
+    }
+    
+    // Fallback if no API key or fetch failed
+    (StatusCode::OK, Json(json!({
+        "news": [],
+        "count": 0,
         "timestamp": chrono::Utc::now().to_rfc3339(),
-        "source": "mock"
+        "source": "none",
+        "message": "No Finnhub API key configured. Set FINNHUB_KEY environment variable to enable news."
     })))
 }
