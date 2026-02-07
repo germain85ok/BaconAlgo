@@ -168,8 +168,10 @@
 
 <!-- Add Broker Modal -->
 {#if showAddModal}
-	<div class="modal-overlay" onclick={() => showAddModal = false}>
-		<div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" tabindex="0" onclick={(e) => e.stopPropagation()} onkeydown={(e) => { if (e.key === 'Escape') showAddModal = false; e.stopPropagation(); }}>
+	<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+	<div class="modal-overlay" role="button" tabindex="0" onclick={() => showAddModal = false} onkeydown={(e) => { if (e.key === 'Escape') showAddModal = false; }}>
+		<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+		<div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" onclick={(e) => e.stopPropagation()} onkeydown={(e) => { if (e.key === 'Escape') showAddModal = false; e.stopPropagation(); }}>
 			<h2 id="modal-title">Add Broker</h2>
 			
 			<div class="form-group">

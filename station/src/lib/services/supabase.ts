@@ -1,11 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
-import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY } from '$env/static/public';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../config/env';
 
-if (!PUBLIC_SUPABASE_URL || !PUBLIC_SUPABASE_ANON_KEY) {
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
 	throw new Error('Missing Supabase environment variables');
 }
 
-export const supabase = createClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY);
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // Helper to get the current user
 export async function getCurrentUser() {
