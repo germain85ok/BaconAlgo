@@ -27,7 +27,8 @@
   let liquidityLines: any[] = [];
   let priceLines: any[] = [];
   
-  const API_BASE = 'http://localhost:8000';
+  // Use environment variable for API URL with fallback
+  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080';
   
   onMount(() => {
     // Create chart
