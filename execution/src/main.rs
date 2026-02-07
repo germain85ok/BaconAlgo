@@ -17,6 +17,7 @@ use axum::{
 };
 use std::net::SocketAddr;
 use std::sync::Arc;
+use tokio::sync::RwLock;
 use tower::ServiceBuilder;
 use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
@@ -41,6 +42,7 @@ use market::ProviderManager;
 struct AppState {
     bus: SignalBus<LiveSignal>,
     provider_manager: Arc<ProviderManager>,
+    signal_buffer: Arc<RwLock<Vec<LiveSignal>>>,
 }
 
 // Implement FromRef to allow individual state extractors
@@ -53,6 +55,12 @@ impl axum::extract::FromRef<AppState> for SignalBus<LiveSignal> {
 impl axum::extract::FromRef<AppState> for Arc<ProviderManager> {
     fn from_ref(state: &AppState) -> Self {
         state.provider_manager.clone()
+    }
+}
+
+impl axum::extract::FromRef<AppState> for Arc<RwLock<Vec<LiveSignal>>> {
+    fn from_ref(state: &AppState) -> Self {
+        state.signal_buffer.clone()
     }
 }
 
@@ -82,11 +90,29 @@ async fn main() {
     let provider_manager = Arc::new(ProviderManager::new());
     tracing::info!("✅ Provider manager initialized");
 
+    // Create shared signal buffer (stores last 100 signals)
+    let signal_buffer = Arc::new(RwLock::new(Vec::<LiveSignal>::new()));
+
     // Create app state
     let app_state = AppState {
         bus: bus.clone(),
         provider_manager: provider_manager.clone(),
+        signal_buffer: signal_buffer.clone(),
     };
+
+    // Start signal buffer populator - subscribes to bus and adds signals to buffer
+    let buffer_bus = bus.clone();
+    let buffer_ref = signal_buffer.clone();
+    tokio::spawn(async move {
+        let mut rx = buffer_bus.subscribe();
+        while let Ok(signal) = rx.recv().await {
+            let mut buffer = buffer_ref.write().await;
+            buffer.insert(0, signal); // Add to front
+            if buffer.len() > 100 {
+                buffer.truncate(100); // Keep only last 100
+            }
+        }
+    });
 
     // Start scanner in background
     let scanner_bus = bus.clone();
