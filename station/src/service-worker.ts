@@ -84,9 +84,14 @@ async function staleWhileRevalidate(request: Request, cacheName: string): Promis
 
 	const fetchPromise = fetch(request).then(async (response) => {
 		if (response.ok) {
-			const responseToCache = response.clone();
-			const cache = await caches.open(cacheName);
-			await cache.put(request, responseToCache);
+			try {
+				const responseToCache = response.clone();
+				const cache = await caches.open(cacheName);
+				await cache.put(request, responseToCache);
+			} catch (error) {
+				// Cache operation failed, but return the response anyway
+				console.error('Failed to cache response:', error);
+			}
 		}
 		return response;
 	});
